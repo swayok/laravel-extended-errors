@@ -61,5 +61,5 @@ public function __construct(Application $app, Router $router) {
 
 **Note**: make sure `'Illuminate\Foundation\Bootstrap\ConfigureLogging'` is really there in parent class and update it required
 
-Now you will get additional information for errors
+Now you will get additional information for errors:
 [screenshot.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot.png)
