@@ -2,7 +2,17 @@
 
 ##Add require to composer.json
 
-todo: add require here
+```
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/swayok/laravel_extended_errors.git"
+    },
+],
+"require": {
+    "swayok/laravel_extended_errors": "master@dev",
+}
+```
 
 ##In `/bootstrap/app.php`:
 
@@ -24,7 +34,7 @@ $app->singleton(
 );
 ```
 
-And add
+and add
 
 ```
 $app->configureMonologUsing(function ($monolog) {
@@ -34,7 +44,9 @@ $app->configureMonologUsing(function ($monolog) {
 });
 ```
 
-##In `/app/Http/Kernel.php`: add constructor
+##In `/app/Http/Kernel.php`: 
+
+add constructor
 
 ```
 public function __construct(Application $app, Router $router) {
@@ -47,7 +59,7 @@ public function __construct(Application $app, Router $router) {
 }
 ```
 
-Note: make sure `'Illuminate\Foundation\Bootstrap\ConfigureLogging'` is really there in parent class and update it required
+**Note**: make sure `'Illuminate\Foundation\Bootstrap\ConfigureLogging'` is really there in parent class and update it required
 
-##Now you will get additional information for errors (for example - see screenshot.png)
-
+Now you will get additional information for errors
+[screenshot.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot.png)
