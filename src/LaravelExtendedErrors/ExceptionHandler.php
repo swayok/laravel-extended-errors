@@ -14,4 +14,11 @@ class ExceptionHandler extends Handler {
     public function renderExceptionAsHtml(Exception $exc) {
         return (new ExceptionRenderer(true))->createResponse($exc)->getContent();
     }
+
+    protected function shouldntReport(Exception $e) {
+        if ($e->getFile() === 'xdebug://debug-eval') {
+            return true;
+        }
+        return parent::shouldntReport($e);
+    }
 }
