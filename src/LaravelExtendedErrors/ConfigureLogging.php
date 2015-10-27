@@ -3,11 +3,12 @@
 
 namespace LaravelExtendedErrors;
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\ConfigureLogging as ParentConfigureLogging;
 use Illuminate\Log\Writer;
-use Illuminate\Contracts\Foundation\Application;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Handler\RotatingFileHandler;
+use Monolog\Logger as Monolog;
 use Monolog\Processor\IntrospectionProcessor;
 use Monolog\Processor\WebProcessor;
 
@@ -28,7 +29,7 @@ class ConfigureLogging extends ParentConfigureLogging {
         return $log;
     }
 
-    static public function configureEmails(Logger $monolog, $emalsForLogs) {
+    static public function configureEmails(Monolog $monolog, $emalsForLogs) {
         if (!empty($emalsForLogs)) {
             $mail = new NativeMailerHandler(
                 $emalsForLogs,
@@ -43,7 +44,7 @@ class ConfigureLogging extends ParentConfigureLogging {
         }
     }
 
-    static public function configureFileLogs(Logger $monolog) {
+    static public function configureFileLogs(Monolog $monolog) {
         $files = new RotatingFileHandler(
             storage_path('/logs') . '/errors.log.html',
             3000,
