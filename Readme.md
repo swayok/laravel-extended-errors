@@ -16,7 +16,19 @@
 
 ##In `/bootstrap/app.php`:
 
-replace 
+add
+
+```
+$app->configureMonologUsing(function ($monolog) {
+    $emalsForLogs = env('LOGS_SEND_TO_EMAILS', false);
+    \LaravelExtendedErrors\ConfigureLogging::configureEmails($monolog, $emalsForLogs);
+    \LaravelExtendedErrors\ConfigureLogging::configureFileLogs($monolog);
+});
+```
+
+and
+ 
+a) replace 
 
 ```
 $app->singleton(
@@ -34,14 +46,12 @@ $app->singleton(
 );
 ```
 
-and add
+b) extend `LaravelExtendedErrors\ExceptionHandler` by `App\Exceptions\Handler`
 
 ```
-$app->configureMonologUsing(function ($monolog) {
-    $emalsForLogs = env('LOGS_SEND_TO_EMAILS', false);
-    \LaravelExtendedErrors\ConfigureLogging::configureEmails($monolog, $emalsForLogs);
-    \LaravelExtendedErrors\ConfigureLogging::configureFileLogs($monolog);
-});
+class App\Exceptions\Handler extends LaravelExtendedErrors\ExceptionHandler {
+
+}
 ```
 
 ##In `/app/Http/Kernel.php`: 

@@ -1,6 +1,6 @@
 <?php
 
-// replace default singleton with this one to enable extended exceptions
+// replace default singleton with this one to enable extended exceptions or extend LaravelExtendedErrors\ExceptionHandler::class
 $app->singleton(
     Illuminate\Contracts\Debug\ExceptionHandler::class,
     LaravelExtendedErrors\ExceptionHandler::class

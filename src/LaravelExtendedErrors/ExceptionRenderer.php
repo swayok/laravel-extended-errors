@@ -73,40 +73,44 @@ EOF;
 EOF
             , 'Request Information', $request->getRealMethod(), $request->getMethod(), $request->url());
 
-        $content .= '<h2 class="sf-request-info-header">$_GET</h2>';
-        $content .= '<pre>' . json_encode($_GET, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
-        $content .= '<h2 class="sf-request-info-header">$_POST</h2>';
-        $content .= '<pre>' . json_encode($_POST, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
-        $content .= '<h2 class="sf-request-info-header">$_FILES</h2>';
-        $content .= '<pre>' . json_encode($_FILES, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
-        $content .= '<h2 class="sf-request-info-header">$_COOKIE</h2>';
-        $content .= '<pre>' . json_encode(\Cookie::get(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
-        $content .= '<h2 class="sf-request-info-header">$_SERVER</h2>';
-        $serverInfo = [
-            'HTTP_ACCEPT_LANGUAGE',
-            'HTTP_ACCEPT_ENCODING',
-            'HTTP_REFERER',
-            'HTTP_USER_AGENT',
-            'HTTP_ACCEPT',
-            'HTTP_CONNECTION',
-            'HTTP_HOST',
-            'REMOTE_PORT',
-            'REMOTE_ADDR',
-            'REQUEST_URI',
-            'REQUEST_METHOD',
-            'QUERY_STRING',
-            'DOCUMENT_URI',
-            'REQUEST_TIME_FLOAT',
-            'REQUEST_TIME',
-            'argv',
-            'argc',
-        ];
-        $content .= '<pre>' . json_encode(
-                array_intersect_key($_SERVER, array_flip($serverInfo)),
-                JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
-            ) . '</pre>';
+        foreach ($this->getAdditionalData() as $label => $data) {
+            $content .= '<h2 class="sf-request-info-header">' . $label . '</h2>';
+            $content .= '<pre>' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
+        }
 
-        $content = preg_replace(
+        return $this->cleanPasswords($content) . '</div></div>';
+    }
+
+    protected function getAdditionalData() {
+        return [
+            '$_GET' => $_GET,
+            '$_POST' => $_POST,
+            '$_FILES' => $_FILES,
+            '$_COOKIE' => class_exists('\Cookie') ? \Cookie::get() : (!empty($_COOKIE) ? $_COOKIE : []),
+            '$_SERVER' => array_intersect_key($_SERVER, array_flip([
+                'HTTP_ACCEPT_LANGUAGE',
+                'HTTP_ACCEPT_ENCODING',
+                'HTTP_REFERER',
+                'HTTP_USER_AGENT',
+                'HTTP_ACCEPT',
+                'HTTP_CONNECTION',
+                'HTTP_HOST',
+                'REMOTE_PORT',
+                'REMOTE_ADDR',
+                'REQUEST_URI',
+                'REQUEST_METHOD',
+                'QUERY_STRING',
+                'DOCUMENT_URI',
+                'REQUEST_TIME_FLOAT',
+                'REQUEST_TIME',
+                'argv',
+                'argc',
+            ]))
+        ];
+    }
+
+    protected function cleanPasswords($content) {
+        return preg_replace(
             [
                 '%("[^"]*?pass(?:word)?[^"]*"\s*:\s*")[^"]*"%is', //< for $_GET / $_POST
                 '%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im' //< for $_SERVER (in http query)
@@ -117,8 +121,6 @@ EOF
             ],
             $content
         );
-
-        return $content . '</div></div>';
     }
 
     public function getStylesheet(FlattenException $exception) {
