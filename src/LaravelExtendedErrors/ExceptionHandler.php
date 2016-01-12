@@ -7,13 +7,24 @@ use Illuminate\Foundation\Exceptions\Handler;
 
 class ExceptionHandler extends Handler {
 
-    protected function convertExceptionToResponse(\Exception $e) {
-        return (new ExceptionRenderer(config('app.debug')))->createResponse($e);
-//        return (new EmailExceptionRenderer())->createResponse($e);
+    protected function convertExceptionToResponse(\Exception $exc) {
+        try {
+            return $this->_convertExceptionToResponse($exc);
+        } catch (\Exception $exc2) {
+            return parent::convertExceptionToResponse($exc2);
+        }
+    }
+
+    protected function _convertExceptionToResponse(\Exception $exc) {
+        return (new ExceptionRenderer(config('app.debug')))->createResponse($exc);
     }
 
     public function renderExceptionForEmail(Exception $exc) {
-        return (new EmailExceptionRenderer())->createResponse($exc)->getContent();
+        try {
+            return (new EmailExceptionRenderer())->createResponse($exc)->getContent();
+        } catch (\Exception $exc2) {
+            return parent::convertExceptionToResponse($exc2)->getContent();
+        }
     }
 
     protected function shouldntReport(Exception $e) {
