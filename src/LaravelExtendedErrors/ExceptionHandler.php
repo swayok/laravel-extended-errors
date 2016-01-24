@@ -4,6 +4,8 @@ namespace LaravelExtendedErrors;
 
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler;
+use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ExceptionHandler extends Handler {
 
@@ -17,7 +19,13 @@ class ExceptionHandler extends Handler {
 
     protected function _convertExceptionToResponse(\Exception $exc) {
         try {
-            return (new ExceptionRenderer(config('app.debug')))->createResponse($exc);
+            if ($exc instanceof HttpException && \Request::ajax()) {
+                return new JsonResponse([
+                    '_message' => $exc->getMessage(),
+                ], $exc->getStatusCode());
+            } else {
+                return (new ExceptionRenderer(config('app.debug')))->createResponse($exc);
+            }
         } catch (\Exception $exc2) {
             return parent::convertExceptionToResponse($exc2);
         }
