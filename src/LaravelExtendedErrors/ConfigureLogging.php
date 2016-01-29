@@ -34,7 +34,7 @@ class ConfigureLogging extends ParentConfigureLogging {
             $mail = new NativeMailerHandler(
                 $emalsForLogs,
                 env('LOGS_EMAIL_SUBJECT', 'Error report'),
-                env('LOGS_EMAIL_FROM', 'errors@platido.ru')
+                env('LOGS_EMAIL_FROM', 'errors@' . request()->getHost())
             );
             $mail->setFormatter(new HtmlFormatter());
             $mail->pushProcessor(new WebProcessor());
