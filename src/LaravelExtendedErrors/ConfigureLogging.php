@@ -31,11 +31,11 @@ class ConfigureLogging extends ParentConfigureLogging {
 
     static public function configureEmails(Monolog $monolog, $emalsForLogs) {
         if (!empty($emalsForLogs)) {
-            $mail = new NativeMailerHandler(
-                $emalsForLogs,
-                env('LOGS_EMAIL_SUBJECT', 'Error report'),
-                env('LOGS_EMAIL_FROM', 'errors@' . request()->getHost())
-            );
+            $senderEmail = env('LOGS_EMAIL_FROM', false);
+            if (empty($senderEmail)) {
+                $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
+            }
+            $mail = new NativeMailerHandler($emalsForLogs, env('LOGS_EMAIL_SUBJECT', 'Error report'), $senderEmail);
             $mail->setFormatter(new HtmlFormatter());
             $mail->pushProcessor(new WebProcessor());
             $mail->pushProcessor(new IntrospectionProcessor(Logger::NOTICE));
