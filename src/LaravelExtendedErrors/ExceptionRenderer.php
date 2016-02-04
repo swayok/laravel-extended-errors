@@ -10,10 +10,12 @@ use Symfony\Component\HttpFoundation\Response;
 class ExceptionRenderer extends SymfonyExceptionRenderer {
 
     protected $charset;
+    protected $debug;
 
     public function __construct($debug = true, $charset = null, $fileLinkFormat = null) {
         parent::__construct($debug, $charset, $fileLinkFormat);
         $this->charset = $charset ?: env('DEFAULT_CHARSET') ?: 'UTF-8';
+        $this->debug = !!$debug;
     }
 
     public function createResponse($exception) {
@@ -22,15 +24,16 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
         }
 
         return Response::create(
-            $this->decorate($this->getContent($exception), $this->getRequestInfo(), $this->getStylesheet($exception)),
+            $this->decorate($this->getContent($exception), $this->getStylesheet($exception)),
             $exception->getStatusCode(),
             $exception->getHeaders()
         )->setCharset($this->charset);
     }
 
-    private function decorate($content, $requestInfo, $css) {
-        $content = preg_replace('%</div>\s*</div>\s*$%is', '', $content);
-        $requestInfo .= '</div></div>';
+    private function decorate($content, $css) {
+        if (!$this->debug) {
+            $content = preg_replace('%</div>\s*</div>\s*$%is', '', $content) . '<hr>' . $this->getRequestInfo() . '</div></div>';
+        }
         return <<<EOF
 <!DOCTYPE html>
 <html>
@@ -49,36 +52,35 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
     </head>
     <body>
         $content
-        <hr>
-        $requestInfo
     </body>
 </html>
 EOF;
     }
 
     private function getRequestInfo() {
-        if (empty($_SERVER['REQUEST_METHOD'])) {
+        if (empty($_SERVER['REQUEST_METHOD']) || $this->debug) {
             return '';
         }
         $request = request();
-        $content = sprintf(<<<EOF
+        $additionalData =  '';
+        foreach ($this->getAdditionalData() as $label => $data) {
+            $additionalData .= '<h2 class="sf-request-info-header">' . $label . '</h2>';
+            $additionalData .= '<pre>' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
+        }
+        $additionalData = $this->cleanPasswords($additionalData);
+        $content = <<<EOF
             <div class="sf-request-info">
                 <h2 class="clear_fix sf-request-info-header sf-text-center">
-                    <b>%s</b><br>
+                    <b>Request Information</b><br>
                 </h2>
-                <h2>(%s -> %s) %s</h2>
+                <h2>({$request->getRealMethod()} -> {$request->getMethod()}) {$request->url()}</h2>
                 <br>
                 <div style="font-size: 14px !important">
-
-EOF
-            , 'Request Information', $request->getRealMethod(), $request->getMethod(), $request->url());
-
-        foreach ($this->getAdditionalData() as $label => $data) {
-            $content .= '<h2 class="sf-request-info-header">' . $label . '</h2>';
-            $content .= '<pre>' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
-        }
-
-        return $this->cleanPasswords($content) . '</div></div>';
+                    $additionalData
+                </div>
+            </div>
+EOF;
+        return $content;
     }
 
     protected function getAdditionalData() {
