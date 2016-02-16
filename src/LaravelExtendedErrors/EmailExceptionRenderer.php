@@ -47,6 +47,7 @@ EOF;
             return '';
         }
         $request = request();
+        $url = !empty($_SERVER['REQUEST_URI']) ? $request->url() : 'Probably console command';
         $content = sprintf(<<<EOF
             <div class="sf-request-info">
                 <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
@@ -57,7 +58,7 @@ EOF;
                 <div style="font-size: 14px !important">
 
 EOF
-            , 'Request Information', $request->getRealMethod(), $request->getMethod(), $request->url());
+            , 'Request Information', $request->getRealMethod(), $request->getMethod(), $url);
 
         foreach ($this->getAdditionalData() as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
