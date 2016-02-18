@@ -9,22 +9,25 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ExceptionHandler extends Handler {
 
-    protected function convertExceptionToResponse(\Exception $exc) {
+    private $request = null;
+
+    public function render($request, \Exception $exc) {
         try {
-            return $this->_convertExceptionToResponse($exc);
+            $this->request = $request;
+            return $this->convertExceptionToResponse($exc);
         } catch (\Exception $exc2) {
-            return parent::convertExceptionToResponse($exc2);
+            return parent::render($request, $exc2);
         }
     }
 
-    protected function _convertExceptionToResponse(\Exception $exc) {
+    protected function convertExceptionToResponse(\Exception $exc) {
         try {
             if ($exc instanceof HttpException && \Request::ajax()) {
                 return new JsonResponse([
                     '_message' => $exc->getMessage(),
                 ], $exc->getStatusCode());
             } else {
-                return (new ExceptionRenderer(config('app.debug')))->createResponse($exc);
+                return parent::render($this->request, $exc);
             }
         } catch (\Exception $exc2) {
             return parent::convertExceptionToResponse($exc2);
