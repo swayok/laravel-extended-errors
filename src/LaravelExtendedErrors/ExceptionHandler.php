@@ -17,12 +17,23 @@ class ExceptionHandler extends Handler {
         }
     }
 
+    protected function renderHttpException(HttpException $exc) {
+        if (\Request::ajax()) {
+            /** @var HttpException $exc */
+            $data = json_decode($exc->getMessage(), true);
+            if (!is_array($data)) {
+                $data = ['_message' => $exc->getMessage()];
+            }
+            return new JsonResponse($data, $exc->getStatusCode());
+        } else {
+            return parent::renderHttpException($exc);
+        }
+    }
+
     protected function _convertExceptionToResponse(\Exception $exc) {
         try {
             if ($exc instanceof HttpException && \Request::ajax()) {
-                return new JsonResponse([
-                    '_message' => $exc->getMessage(),
-                ], $exc->getStatusCode());
+                return $this->renderHttpException($exc);
             } else {
                 return (new ExceptionRenderer(config('app.debug')))->createResponse($exc);
             }
