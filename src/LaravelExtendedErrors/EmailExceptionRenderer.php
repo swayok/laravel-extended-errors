@@ -47,7 +47,11 @@ EOF;
             return '';
         }
         $request = request();
-        $url = !empty($_SERVER['REQUEST_URI']) ? $request->url() : 'Probably console command';
+        try {
+            $url = !empty($_SERVER['REQUEST_URI']) ? $request->url() : 'Probably console command';
+        } catch (\UnexpectedValueException $exc) {
+            $url = 'Error: ' . $exc->getMessage();
+        }
         $content = sprintf(<<<EOF
             <div class="sf-request-info">
                 <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
