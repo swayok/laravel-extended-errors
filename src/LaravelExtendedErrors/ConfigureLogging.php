@@ -3,7 +3,7 @@
 
 namespace LaravelExtendedErrors;
 
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\ConfigureLogging as ParentConfigureLogging;
 use Illuminate\Log\Writer;
 use Monolog\Handler\NativeMailerHandler;
@@ -14,17 +14,29 @@ use Monolog\Processor\WebProcessor;
 
 class ConfigureLogging extends ParentConfigureLogging {
 
+    static public function init(Application $app, $emalsForLogs = false) {
+        // replace default configurator
+        $app->singleton(
+            \Illuminate\Foundation\Bootstrap\ConfigureLogging::class,
+            __CLASS__
+        );
+
+        $app->configureMonologUsing(function ($monolog) use ($emalsForLogs) {
+            self::configureEmails($monolog, $emalsForLogs);
+            self::configureFileLogs($monolog);
+        });
+    }
+
     /**
      * Register the logger instance in the container.
      *
-     * @param  \Illuminate\Contracts\Foundation\Application $app
+     * @param  \Illuminate\Foundation\Application $app
      * @return \Illuminate\Log\Writer
      */
     protected function registerLogger(Application $app) {
         $logger = new Logger($app->environment()); //< do not move this! it might produce "Class declarations may not be nested" error
-        $app->instance('log', $log = new Writer(
-            $logger, $app['events'])
-        );
+        $log = new Writer($logger, $app['events']);
+        $app->instance('log', $log);
 
         return $log;
     }
@@ -35,7 +47,13 @@ class ConfigureLogging extends ParentConfigureLogging {
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
-            $mail = new NativeMailerHandler($emalsForLogs, env('LOGS_EMAIL_SUBJECT', 'Error report'), $senderEmail);
+            $level = env('DEBUG', false) ? Logger::DEBUG : Logger::ERROR;
+            $mail = new NativeMailerHandler(
+                $emalsForLogs,
+                env('LOGS_EMAIL_SUBJECT', 'Error report'),
+                $senderEmail,
+                $level
+            );
             $mail->setFormatter(new HtmlFormatter());
             $mail->pushProcessor(new WebProcessor());
             $mail->pushProcessor(new IntrospectionProcessor(Logger::NOTICE));
@@ -45,10 +63,11 @@ class ConfigureLogging extends ParentConfigureLogging {
     }
 
     static public function configureFileLogs(Monolog $monolog) {
+        // erros/nitices
         $files = new RotatingFileHandler(
             storage_path('/logs') . '/errors.log.html',
-            3000,
-            Logger::NOTICE,
+            365,
+            Logger::DEBUG,
             true,
             0666
         );

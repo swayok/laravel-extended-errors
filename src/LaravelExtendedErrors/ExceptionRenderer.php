@@ -12,9 +12,26 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
     protected $charset;
     protected $debug;
 
+    protected $colors = [
+        'page_bg' => '#FFFFFF',
+        'project_root' => '#aaaaaa',
+        'app_file' => '#008d00',
+        'vendor_file' => '#8d0389',
+        'error_position' => '#FF0000',
+        'trace_item_delimiter' => '#DDDDDD',
+        'class' => '#0000FF',
+        'object' => '#888888',
+        'string' => '#bb0044',
+        'null' => '#008d00',
+        'boolean' => '#008d00',
+        'resource' => '#8d0389',
+        'json_block_bg' => '#EEEEEE',
+        'json_block_border' => '#BBBBBB',
+    ];
+
     public function __construct($debug = true, $charset = null, $fileLinkFormat = null) {
         parent::__construct($debug, $charset, $fileLinkFormat);
-        $this->charset = $charset ?: env('DEFAULT_CHARSET') ?: 'UTF-8';
+        $this->charset = $charset ?: (env('DEFAULT_CHARSET') ?: 'UTF-8');
         $this->debug = !!$debug;
     }
 
@@ -22,65 +39,71 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
         if (!$exception instanceof FlattenException) {
             $exception = FlattenException::create($exception);
         }
-
         return Response::create(
-            $this->decorate($this->getContent($exception), $this->getStylesheet($exception)),
+            $this->decorate($exception),
             $exception->getStatusCode(),
             $exception->getHeaders()
         )->setCharset($this->charset);
     }
 
-    private function decorate($content, $css) {
-        if (!$this->debug) {
-            $content = preg_replace('%</div>\s*</div>\s*$%is', '', $content) . '<hr>' . $this->getRequestInfo() . '</div></div>';
-        }
+    /**
+     * @param FlattenException $exception
+     * @return string
+     */
+    protected function decorate($exception) {
+        $content = $this->getContent($exception);
+        $requestInfo = $this->getRequestInfo();
+        $cssStyles = $this->getStylesheet($exception);
         return <<<EOF
 <!DOCTYPE html>
 <html>
     <head>
         <meta charset="{$this->charset}" />
         <meta name="robots" content="noindex,nofollow" />
-        <style>
-            /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */
-            html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:text-top;}sub{vertical-align:text-bottom;}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;}input,textarea,select{*font-size:100%;}legend{color:#000;}
-
-            html { background: #eee; padding: 10px }
-            img { border: 0; }
-            #sf-resetcontent { width:970px; margin:0 auto; }
-            $css
-        </style>
+        <title>{$exception->getMessage()}</title>
+        $cssStyles
     </head>
-    <body>
-        $content
+    <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']}; font: 11px Verdana, Arial, sans-serif;">
+        <div id="content">
+            $content
+            $requestInfo
+        </content>
     </body>
 </html>
 EOF;
     }
 
-    private function getRequestInfo() {
-        if (empty($_SERVER['REQUEST_METHOD']) || $this->debug) {
+    protected function getRequestInfo() {
+        if (empty($_SERVER['REQUEST_METHOD']) || !$this->debug) {
             return '';
         }
         $request = request();
-        $additionalData =  '';
-        foreach ($this->getAdditionalData() as $label => $data) {
-            $additionalData .= '<h2 class="sf-request-info-header">' . $label . '</h2>';
-            $additionalData .= '<pre>' . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
+        try {
+            $url = !empty($_SERVER['REQUEST_URI']) ? $request->url() : 'Probably console command';
+        } catch (\UnexpectedValueException $exc) {
+            $url = 'Error: ' . $exc->getMessage();
         }
-        $additionalData = $this->cleanPasswords($additionalData);
+        $title = 'Request Information';
         $content = <<<EOF
             <div class="sf-request-info">
-                <h2 class="clear_fix sf-request-info-header sf-text-center">
-                    <b>Request Information</b><br>
+                <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
+                    <b>{$title}</b><br>
                 </h2>
-                <h2>({$request->getRealMethod()} -> {$request->getMethod()}) {$request->url()}</h2>
+                <h2 style="font-size: 18px;">({$request->getRealMethod()} -> {$request->getMethod()}) $url</h2>
                 <br>
                 <div style="font-size: 14px !important">
-                    $additionalData
-                </div>
-            </div>
+
 EOF;
-        return $content;
+        foreach ($this->getAdditionalData() as $label => $data) {
+            $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $content .= <<<EOF
+                <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
+                padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
+EOF;
+        }
+
+        return $this->cleanPasswords($content) . '</div></div>';
     }
 
     protected function getAdditionalData() {
@@ -125,23 +148,118 @@ EOF;
         );
     }
 
+    public function getContent(FlattenException $exception) {
+        $content = '';
+        $title = 'Exception happened';
+        try {
+            foreach ($exception->toArray() as $position => $e) {
+                $class = $this->formatClass($e['class']);
+                $message = nl2br($this->escapeHtml($e['message']));
+                $content .= sprintf(<<<EOF
+                    <h2>%s</h2>
+                    <h3>Type: %s</h3>
+                    <div style="margin-bottom: 50px;">
+                        <ol>
+
+EOF
+                    , $message, $class, $this->formatPath($e['trace'][0]['file'], $e['trace'][0]['line']));
+                foreach ($e['trace'] as $trace) {
+                    $content .= '       <li style="border-bottom: 1px solid ' . $this->colors['trace_item_delimiter'] . '; padding: 5px 0 9px 0; margin: 0;">';
+                    if (isset($trace['file']) && isset($trace['line'])) {
+                        $content .= '<p>' . $this->formatPath($trace['file'], $trace['line']) .'</p>';
+                    }
+                    if ($trace['function']) {
+                        $content .= sprintf('<p>at %s<span style="color: ' . $this->colors['error_position'] . '">%s%s</span>( %s )</p>', $this->formatClass($trace['class']), $trace['type'], $trace['function'], $this->formatArgs($trace['args']));
+                    }
+                    unset($trace['file'], $trace['line'], $trace['short_class'], $trace['namespace']);
+                    if (empty($trace['class'])) {
+                        unset($trace['class']);
+                        if (empty($trace['type'])) {
+                            unset($trace['type']);
+                        }
+                    }
+                    //$content .= '<pre>' . json_encode($trace, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
+                    $content .= "</li>\n";
+                }
+
+                $content .= "    </ol>\n</div>\n<hr>\n";
+            }
+        } catch (\Exception $e) {
+            // something nasty happened and we cannot throw an exception anymore
+            $title = sprintf('Exception thrown when handling an exception (%s: %s)', get_class($e), $this->escapeHtml($e->getMessage()));
+        }
+
+        return <<<EOF
+            <h1>$title</h1>
+            $content
+EOF;
+    }
+
     public function getStylesheet(FlattenException $exception) {
-        $styles = parent::getStylesheet($exception);
-        $styles .= <<<EOF
-            .sf-request-info-header {
-                margin: 20px 0 20px 0;
-            }
-            .sf-text-center {
-                text-align: center;
-            }
-            .sf-request-info pre {
-                font-size: 14px !important;
-                border: 1px solid #CCCCCC;
-                background: #EEEEEE;
-                padding: 20px;
-                word-break: break-word;
-            }
+        $styles = <<<EOF
+            <style>
+                html { padding: 10px }
+                img { border: 0; }
+                #content { width:100%; max-width:970px; margin:0 auto; }
+            </style>
 EOF;
         return $styles;
+    }
+
+    protected function escapeHtml($str) {
+        return htmlspecialchars($str, ENT_QUOTES | (PHP_VERSION_ID >= 50400 ? ENT_SUBSTITUTE : 0), $this->charset);
+    }
+
+    protected function formatClass($class) {
+        return sprintf('<span style="color: ' . $this->colors['class'] . '">%s</span>', $class);
+    }
+
+    protected function formatPath($path, $line) {
+        $path = preg_replace(
+            [
+                '%(' . preg_quote(app_path()) . '.*)%i',
+                '%(' . preg_quote(base_path() . DIRECTORY_SEPARATOR . 'vendor') . '.*)%i',
+                '%(' . preg_quote(base_path()) . ')%i',
+            ],
+            [
+                '<span style="color: ' . $this->colors['app_file'] . '; font-weight: bold;">$1</span>',
+                '<span style="color: ' . $this->colors['vendor_file'] . '; font-weight: bold;">$1</span>',
+                '<span style="color: ' . $this->colors['project_root'] . '; font-weight: normal;">$1</span>',
+            ],
+            $path
+        );
+        return sprintf(' in %s line %d</a>', $path, $line);
+    }
+
+    /**
+     * Formats an array as a string.
+     *
+     * @param array $args The argument array
+     *
+     * @return string
+     */
+    protected function formatArgs(array $args) {
+        $result = array();
+        foreach ($args as $key => $item) {
+            if ('object' === $item[0]) {
+                $formattedValue = sprintf('<span style="border-bottom: 1px dotted ' . $this->colors['object'] . ';">%s</span>', $this->formatClass($item[1]));
+            } elseif ('array' === $item[0]) {
+                $formattedValue = sprintf('<span>array</span>( %s )', is_array($item[1]) ? $this->formatArgs($item[1]) : $item[1]);
+            } elseif ('string' === $item[0]) {
+                $formattedValue = sprintf("<span style=\"color: {$this->colors['string']};\">'%s'</span>", $this->escapeHtml($item[1]));
+            } elseif ('null' === $item[0]) {
+                $formattedValue = '<span style="color: ' . $this->colors['null'] . ';">null</span>';
+            } elseif ('boolean' === $item[0]) {
+                $formattedValue = '<span style="color: ' . $this->colors['boolean'] . ';">' . strtolower(var_export($item[1], true)) . '</span>';
+            } elseif ('resource' === $item[0]) {
+                $formattedValue = '<span style="color: ' . $this->colors['resource'] . ';">resource</span>';
+            } else {
+                $formattedValue = str_replace("\n", '', var_export($this->escapeHtml((string)$item[1]), true));
+            }
+
+            $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
+        }
+
+        return implode(', ', $result);
     }
 }

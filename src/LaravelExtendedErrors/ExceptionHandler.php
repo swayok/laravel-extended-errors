@@ -9,25 +9,40 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ExceptionHandler extends Handler {
 
-    private $request = null;
-
-    public function render($request, \Exception $exc) {
+    protected function convertExceptionToResponse(\Exception $exc) {
         try {
-            $this->request = $request;
-            return $this->convertExceptionToResponse($exc);
+            return $this->_convertExceptionToResponse($exc);
         } catch (\Exception $exc2) {
-            return parent::render($request, $exc2);
+            return parent::convertExceptionToResponse($exc2);
         }
     }
 
-    protected function convertExceptionToResponse(\Exception $exc) {
+    protected function renderHttpException(HttpException $exc) {
+        if (\Request::ajax()) {
+            /** @var HttpException $exc */
+            $data = json_decode($exc->getMessage(), true);
+            if (!is_array($data)) {
+                $data = ['_message' => $exc->getMessage()];
+            }
+            return new JsonResponse($data, $exc->getStatusCode());
+        } else {
+            return parent::renderHttpException($exc);
+        }
+    }
+
+    protected function _convertExceptionToResponse(\Exception $exc) {
         try {
             if ($exc instanceof HttpException && \Request::ajax()) {
-                return new JsonResponse([
-                    '_message' => $exc->getMessage(),
-                ], $exc->getStatusCode());
+                return $this->renderHttpException($exc);
             } else {
-                return parent::render($this->request, $exc);
+                $isDebug = config('app.debug');
+                if ($isDebug || $exc instanceof HttpException) {
+                    return (new ExceptionRenderer($isDebug))->createResponse($exc);
+                } else {
+                    // try to render custom error page for HTTP status code = 500
+                    // (by default: resources/errors/500.blade.php)
+                    return $this->renderHttpException(new HttpException(500, $exc->getMessage(), $exc));
+                }
             }
         } catch (\Exception $exc2) {
             return parent::convertExceptionToResponse($exc2);

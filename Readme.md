@@ -1,75 +1,39 @@
 #How to setup:
 
-##Add require to composer.json
+##1. Add require to `composer.json` and run `composer update`
 
-```
-"repositories": [
-    {
-        "type": "vcs",
-        "url": "https://github.com/swayok/laravel_extended_errors.git"
-    },
-],
-"require": {
-    "swayok/laravel_extended_errors": "master@dev",
-}
-```
-
-##In `/bootstrap/app.php`:
-
-add
-
-```
-$app->configureMonologUsing(function ($monolog) {
-    $emalsForLogs = env('LOGS_SEND_TO_EMAILS', false);
-    \LaravelExtendedErrors\ConfigureLogging::configureEmails($monolog, $emalsForLogs);
-    \LaravelExtendedErrors\ConfigureLogging::configureFileLogs($monolog);
-});
-```
-
-and
- 
-a) replace 
-
-```
-$app->singleton(
-    Illuminate\Contracts\Debug\ExceptionHandler::class,
-    App\Exceptions\Handler::class
-);
-```
-
-with
-
-```
-$app->singleton(
-    Illuminate\Contracts\Debug\ExceptionHandler::class,
-    LaravelExtendedErrors\ExceptionHandler::class
-);
-```
-
-b) extend `LaravelExtendedErrors\ExceptionHandler` by `App\Exceptions\Handler`
-
-```
-class App\Exceptions\Handler extends LaravelExtendedErrors\ExceptionHandler {
-
-}
-```
-
-##In `/app/Http/Kernel.php`: 
-
-add constructor
-
-```
-public function __construct(Application $app, Router $router) {
-    if (($idx = array_search('Illuminate\Foundation\Bootstrap\ConfigureLogging', $this->bootstrappers)) !== false) {
-        array_splice($this->bootstrappers, $idx, 1, \LaravelExtendedErrors\ConfigureLogging::class);
-    } else {
-        $this->bootstrappers[] = \LaravelExtendedErrors\ConfigureLogging::class;
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/swayok/laravel_extended_errors.git"
+        },
+    ],
+    "require": {
+        "swayok/laravel_extended_errors": "master@dev",
     }
-    parent::__construct($app, $router);
-}
-```
 
-**Note**: make sure `'Illuminate\Foundation\Bootstrap\ConfigureLogging'` is really there in parent class and update it required
+##2. To `/bootstrap/app.php` add:
+
+    \LaravelExtendedErrors\ConfigureLogging::init($app, env('LOGS_SEND_TO_EMAILS', false));
+
+##3. Modify `app/Exceptions/Handler.php` to extend `LaravelExtendedErrors\ExceptionHandler` or `PeskyCMF\CmfExceptionHandler`:
+
+    class Handler extends LaravelExtendedErrors\ExceptionHandler {
+        /**
+         * A list of the exception types that should not be reported.
+         *
+         * @var array
+         */
+        protected $dontReport = [
+            \Illuminate\Auth\Access\AuthorizationException::class,
+            \Symfony\Component\HttpKernel\Exception\HttpException::class,
+            \Illuminate\Database\Eloquent\ModelNotFoundException::class,
+            \Illuminate\Session\TokenMismatchException::class,
+            \Illuminate\Foundation\Validation\ValidationException::class,
+            \Illuminate\Validation\ValidationException::class,
+        ];
+    
+    }
 
 Now you will get additional information for errors:
 [screenshot.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot.png)
