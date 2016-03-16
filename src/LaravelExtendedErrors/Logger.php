@@ -10,7 +10,7 @@ class Logger extends Monolog {
     public function addRecord($level, $message, array $context = array()) {
         if ($message instanceof \Exception) {
             $handler = new ExceptionHandler($this);
-            $message = $handler->renderExceptionForEmail($message);
+            $message = $handler->renderExceptionForLogger($message);
         }
         return parent::addRecord($level, $message, $context);
     }

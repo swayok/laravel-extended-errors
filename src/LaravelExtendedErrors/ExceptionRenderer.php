@@ -14,19 +14,21 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
 
     protected $colors = [
         'page_bg' => '#FFFFFF',
-        'project_root' => '#aaaaaa',
+        'content_bg' => '#F5F5F5',
+        'content_border' => '#CCCCCC',
+        'project_root' => '#888888',
         'app_file' => '#008d00',
         'vendor_file' => '#8d0389',
         'error_position' => '#FF0000',
-        'trace_item_delimiter' => '#DDDDDD',
+        'trace_item_delimiter' => '#CCCCCC',
         'class' => '#0000FF',
         'object' => '#888888',
         'string' => '#bb0044',
         'null' => '#008d00',
         'boolean' => '#008d00',
         'resource' => '#8d0389',
-        'json_block_bg' => '#EEEEEE',
-        'json_block_border' => '#BBBBBB',
+        'json_block_bg' => '#FFFFFF',
+        'json_block_border' => '#CCCCCC',
     ];
 
     public function __construct($debug = true, $charset = null, $fileLinkFormat = null) {
@@ -35,12 +37,12 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
         $this->debug = !!$debug;
     }
 
-    public function createResponse($exception) {
+    public function createResponse($exception, $onlyHtmlBodyContent = false) {
         if (!$exception instanceof FlattenException) {
             $exception = FlattenException::create($exception);
         }
         return Response::create(
-            $this->decorate($exception),
+            $this->render($exception, $onlyHtmlBodyContent),
             $exception->getStatusCode(),
             $exception->getHeaders()
         )->setCharset($this->charset);
@@ -48,26 +50,32 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
 
     /**
      * @param FlattenException $exception
+     * @param bool $onlyHtmlBodyContent
      * @return string
      */
-    protected function decorate($exception) {
-        $content = $this->getContent($exception);
-        $requestInfo = $this->getRequestInfo();
-        $cssStyles = $this->getStylesheet($exception);
+    protected function render($exception, $onlyHtmlBodyContent = false) {
+        $bodyContent = <<<EOF
+            <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
+            padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
+            border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
+                {$this->getContent($exception)}
+                {$this->getRequestInfo()}
+            </div>
+EOF;
+        if ($onlyHtmlBodyContent) {
+            return $bodyContent;
+        }
         return <<<EOF
 <!DOCTYPE html>
 <html>
     <head>
         <meta charset="{$this->charset}" />
         <meta name="robots" content="noindex,nofollow" />
-        <title>{$exception->getMessage()}</title>
-        $cssStyles
+        <title>Error report: {$exception->getMessage()}</title>
+        {$this->getStylesheet($exception)}
     </head>
-    <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']}; font: 11px Verdana, Arial, sans-serif;">
-        <div id="content">
-            $content
-            $requestInfo
-        </content>
+    <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']};">
+        {$bodyContent}
     </body>
 </html>
 EOF;
@@ -85,7 +93,8 @@ EOF;
         }
         $title = 'Request Information';
         $content = <<<EOF
-            <div class="sf-request-info">
+            <div class="request-info">
+                <hr>
                 <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
                     <b>{$title}</b><br>
                 </h2>
@@ -150,7 +159,7 @@ EOF;
 
     public function getContent(FlattenException $exception) {
         $content = '';
-        $title = 'Exception happened';
+        $title = 'Exception Report';
         try {
             foreach ($exception->toArray() as $position => $e) {
                 $class = $this->formatClass($e['class']);
@@ -182,7 +191,7 @@ EOF
                     $content .= "</li>\n";
                 }
 
-                $content .= "    </ol>\n</div>\n<hr>\n";
+                $content .= "    </ol>\n</div>";
             }
         } catch (\Exception $e) {
             // something nasty happened and we cannot throw an exception anymore
@@ -200,7 +209,6 @@ EOF;
             <style>
                 html { padding: 10px }
                 img { border: 0; }
-                #content { width:100%; max-width:970px; margin:0 auto; }
             </style>
 EOF;
         return $styles;

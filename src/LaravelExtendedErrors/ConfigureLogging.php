@@ -14,15 +14,15 @@ use Monolog\Processor\WebProcessor;
 
 class ConfigureLogging extends ParentConfigureLogging {
 
-    static public function init(Application $app, $emalsForLogs = false) {
+    static public function init(Application $app, $emalAddresses = false, $emailSubject = 'Error report') {
         // replace default configurator
         $app->singleton(
             \Illuminate\Foundation\Bootstrap\ConfigureLogging::class,
             __CLASS__
         );
 
-        $app->configureMonologUsing(function ($monolog) use ($emalsForLogs) {
-            self::configureEmails($monolog, $emalsForLogs);
+        $app->configureMonologUsing(function ($monolog) use ($emalAddresses, $emailSubject) {
+            self::configureEmails($monolog, $emalAddresses, $emailSubject);
             self::configureFileLogs($monolog);
         });
     }
@@ -41,29 +41,29 @@ class ConfigureLogging extends ParentConfigureLogging {
         return $log;
     }
 
-    static public function configureEmails(Monolog $monolog, $emalsForLogs) {
-        if (!empty($emalsForLogs)) {
+    static public function configureEmails(Monolog $monolog, $emalAddresses, $emailSubject) {
+        if (!empty($emalAddresses)) {
             $senderEmail = env('LOGS_EMAIL_FROM', false);
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
             $level = env('DEBUG', false) ? Logger::DEBUG : Logger::ERROR;
             $mail = new NativeMailerHandler(
-                $emalsForLogs,
-                env('LOGS_EMAIL_SUBJECT', 'Error report'),
+                $emalAddresses,
+                $emailSubject,
                 $senderEmail,
                 $level
             );
             $mail->setFormatter(new HtmlFormatter());
             $mail->pushProcessor(new WebProcessor());
-            $mail->pushProcessor(new IntrospectionProcessor(Logger::NOTICE));
+            $mail->pushProcessor(new IntrospectionProcessor(Logger::DEBUG));
             $mail->setContentType('text/html');
             $monolog->pushHandler($mail);
         }
     }
 
     static public function configureFileLogs(Monolog $monolog) {
-        // erros/nitices
+        // errors/nitices
         $files = new RotatingFileHandler(
             storage_path('/logs') . '/errors.log.html',
             365,
@@ -73,7 +73,7 @@ class ConfigureLogging extends ParentConfigureLogging {
         );
         $files->setFormatter(new HtmlFormatter());
         $files->pushProcessor(new WebProcessor());
-        $files->pushProcessor(new IntrospectionProcessor(Logger::NOTICE));
+        $files->pushProcessor(new IntrospectionProcessor(Logger::DEBUG));
         $monolog->pushHandler($files);
     }
 }

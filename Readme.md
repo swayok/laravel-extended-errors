@@ -14,7 +14,11 @@
 
 ##2. To `/bootstrap/app.php` add:
 
-    \LaravelExtendedErrors\ConfigureLogging::init($app, env('LOGS_SEND_TO_EMAILS', false));
+    \LaravelExtendedErrors\ConfigureLogging::init(
+        $app,
+        env('LOGS_SEND_TO_EMAILS') ?: false,
+        env('LOGS_EMAIL_SUBJECT') ?: 'Error report'
+    );
 
 ##3. Modify `app/Exceptions/Handler.php` to extend `LaravelExtendedErrors\ExceptionHandler` or `PeskyCMF\CmfExceptionHandler`:
 

@@ -5,9 +5,20 @@ namespace LaravelExtendedErrors;
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\JsonResponse;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Symfony\Component\Debug\ExceptionHandler as SymfonyExceptionHandler;
 
 class ExceptionHandler extends Handler {
+
+    protected $isDebug;
+
+    public function __construct(LoggerInterface $log) {
+        parent::__construct($log);
+        $this->isDebug = config('app.debug');
+    }
 
     protected function convertExceptionToResponse(\Exception $exc) {
         try {
@@ -35,9 +46,8 @@ class ExceptionHandler extends Handler {
             if ($exc instanceof HttpException && \Request::ajax()) {
                 return $this->renderHttpException($exc);
             } else {
-                $isDebug = config('app.debug');
-                if ($isDebug || $exc instanceof HttpException) {
-                    return (new ExceptionRenderer($isDebug))->createResponse($exc);
+                if ($this->isDebug || $exc instanceof HttpException) {
+                    return (new ExceptionRenderer($this->isDebug))->createResponse($exc);
                 } else {
                     // try to render custom error page for HTTP status code = 500
                     // (by default: resources/errors/500.blade.php)
@@ -49,12 +59,22 @@ class ExceptionHandler extends Handler {
         }
     }
 
-    public function renderExceptionForEmail(Exception $exc) {
+    public function renderExceptionForLogger(Exception $exc) {
         try {
-            return (new EmailExceptionRenderer())->createResponse($exc)->getContent();
+            return (new ExceptionRenderer(true))->createResponse($exc, true)->getContent();
         } catch (\Exception $exc2) {
-            return parent::convertExceptionToResponse($exc2)->getContent();
+            $ret = $this->originalConvertExceptionToResponseWithDebugEnabled($exc)->getContent();
+            $ret .= $this->originalConvertExceptionToResponseWithDebugEnabled($exc2)->getContent();
+            return $ret;
         }
+    }
+
+    protected function originalConvertExceptionToResponseWithDebugEnabled(Exception $exc) {
+        // needed for emails and file logs, otherwise it will be useless
+        $e = FlattenException::create($exc);
+        $handler = new SymfonyExceptionHandler(true);
+        $decorated = $this->decorate($handler->getContent($e), $handler->getStylesheet($e));
+        return SymfonyResponse::create($decorated, $e->getStatusCode(), $e->getHeaders());
     }
 
     protected function shouldntReport(Exception $e) {
