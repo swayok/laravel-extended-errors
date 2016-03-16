@@ -14,16 +14,19 @@ use Monolog\Processor\WebProcessor;
 
 class ConfigureLogging extends ParentConfigureLogging {
 
-    static public function init(Application $app, $emalAddresses = false, $emailSubject = 'Error report') {
+    static public function init(Application $app) {
         // replace default configurator
         $app->singleton(
             \Illuminate\Foundation\Bootstrap\ConfigureLogging::class,
             __CLASS__
         );
 
-        $app->configureMonologUsing(function ($monolog) use ($emalAddresses, $emailSubject) {
+        $app->configureMonologUsing(function ($monolog) {
+            $emalAddresses = env('LOGS_SEND_TO_EMAILS') ?: false;
+            $emailSubject = env('LOGS_EMAIL_SUBJECT') ?: 'Error report';
             self::configureEmails($monolog, $emalAddresses, $emailSubject);
-            self::configureFileLogs($monolog);
+            $logsFilePath = storage_path('/logs') . '/errors.log.html';
+            self::configureFileLogs($monolog, $logsFilePath);
         });
     }
 
@@ -41,15 +44,15 @@ class ConfigureLogging extends ParentConfigureLogging {
         return $log;
     }
 
-    static public function configureEmails(Monolog $monolog, $emalAddresses, $emailSubject) {
-        if (!empty($emalAddresses)) {
+    static public function configureEmails(Monolog $monolog, $emailAddresses, $emailSubject) {
+        if (!empty($emailAddresses)) {
             $senderEmail = env('LOGS_EMAIL_FROM', false);
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
             $level = env('DEBUG', false) ? Logger::DEBUG : Logger::ERROR;
             $mail = new NativeMailerHandler(
-                $emalAddresses,
+                $emailAddresses,
                 $emailSubject,
                 $senderEmail,
                 $level
@@ -62,10 +65,10 @@ class ConfigureLogging extends ParentConfigureLogging {
         }
     }
 
-    static public function configureFileLogs(Monolog $monolog) {
+    static public function configureFileLogs(Monolog $monolog, $filePath) {
         // errors/nitices
         $files = new RotatingFileHandler(
-            storage_path('/logs') . '/errors.log.html',
+            $filePath,
             365,
             Logger::DEBUG,
             true,

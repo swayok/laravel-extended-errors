@@ -39,5 +39,11 @@
     
     }
 
+##4. Configure environment variables in `.env` file:
+
+    LOGS_SEND_TO_EMAILS="some1@email.com,some2@email.com"
+    LOGS_EMAIL_SUBJECT="Error report"
+    LOGS_EMAIL_FROM="sender@host.com"
+
 Now you will get additional information for errors:
 [screenshot.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot.png)
