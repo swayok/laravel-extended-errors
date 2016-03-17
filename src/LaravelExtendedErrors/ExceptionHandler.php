@@ -31,14 +31,18 @@ class ExceptionHandler extends Handler {
     protected function renderHttpException(HttpException $exc) {
         if (\Request::ajax()) {
             /** @var HttpException $exc */
-            $data = json_decode($exc->getMessage(), true);
-            if (!is_array($data)) {
-                $data = ['_message' => $exc->getMessage()];
-            }
-            return new JsonResponse($data, $exc->getStatusCode());
+            return $this->convertHttpExceptionToJsonResponse($exc);
         } else {
             return parent::renderHttpException($exc);
         }
+    }
+
+    protected function convertHttpExceptionToJsonResponse(HttpException $exc) {
+        $data = json_decode($exc->getMessage(), true);
+        if (!is_array($data)) {
+            $data = ['_message' => $exc->getMessage()];
+        }
+        return new JsonResponse($data, $exc->getStatusCode());
     }
 
     protected function _convertExceptionToResponse(\Exception $exc) {
