@@ -33,8 +33,8 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
 
     public function __construct($debug = true, $charset = null, $fileLinkFormat = null) {
         parent::__construct($debug, $charset, $fileLinkFormat);
-        $this->charset = $charset ?: (env('DEFAULT_CHARSET') ?: 'UTF-8');
-        $this->debug = !!$debug;
+        $this->charset = $charset ?: (config('app.DEFAULT_CHARSET') ?: 'UTF-8');
+        $this->debug = (bool)$debug;
     }
 
     public function createResponse($exception, $onlyHtmlBodyContent = false) {

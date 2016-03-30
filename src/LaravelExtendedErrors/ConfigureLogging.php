@@ -22,8 +22,8 @@ class ConfigureLogging extends ParentConfigureLogging {
         );
 
         $app->configureMonologUsing(function ($monolog) {
-            $emalAddresses = env('LOGS_SEND_TO_EMAILS') ?: false;
-            $emailSubject = env('LOGS_EMAIL_SUBJECT') ?: 'Error report';
+            $emalAddresses = config('logging.email_sender_address') ?: false;
+            $emailSubject = config('logging.email_subject') ?: 'Error report';
             self::configureEmails($monolog, $emalAddresses, $emailSubject);
             $logsFilePath = storage_path('/logs') . '/errors.log.html';
             self::configureFileLogs($monolog, $logsFilePath);
@@ -46,11 +46,11 @@ class ConfigureLogging extends ParentConfigureLogging {
 
     static public function configureEmails(Monolog $monolog, $emailAddresses, $emailSubject) {
         if (!empty($emailAddresses)) {
-            $senderEmail = env('LOGS_EMAIL_FROM', false);
+            $senderEmail = config('logging.email_sender_address') ?: false;
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
-            $level = env('DEBUG', false) ? Logger::DEBUG : Logger::ERROR;
+            $level = config('app.debug', false) ? Logger::DEBUG : Logger::ERROR;
             $mail = new NativeMailerHandler(
                 $emailAddresses,
                 $emailSubject,
