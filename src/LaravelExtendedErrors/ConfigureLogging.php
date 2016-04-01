@@ -3,7 +3,7 @@
 
 namespace LaravelExtendedErrors;
 
-use Illuminate\Foundation\Application;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\ConfigureLogging as ParentConfigureLogging;
 use Illuminate\Log\Writer;
 use Monolog\Handler\NativeMailerHandler;
@@ -33,7 +33,7 @@ class ConfigureLogging extends ParentConfigureLogging {
     /**
      * Register the logger instance in the container.
      *
-     * @param  \Illuminate\Foundation\Application $app
+     * @param  \Illuminate\Foundation\Application|Application $app
      * @return \Illuminate\Log\Writer
      */
     protected function registerLogger(Application $app) {
