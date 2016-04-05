@@ -22,7 +22,7 @@ class ConfigureLogging extends ParentConfigureLogging {
         );
 
         $app->configureMonologUsing(function ($monolog) {
-            $emalAddresses = config('logging.email_sender_address') ?: false;
+            $emalAddresses = config('logging.send_to_emails') ?: false;
             $emailSubject = config('logging.email_subject') ?: 'Error report';
             self::configureEmails($monolog, $emalAddresses, $emailSubject);
             $logsFilePath = storage_path('/logs') . '/errors.log.html';
