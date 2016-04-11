@@ -15,6 +15,7 @@ use Monolog\Processor\WebProcessor;
 class ConfigureLogging extends ParentConfigureLogging {
 
     static public function init(Application $app) {
+        /** @var \Illuminate\Foundation\Application $app */
         // replace default configurator
         $app->singleton(
             \Illuminate\Foundation\Bootstrap\ConfigureLogging::class,
@@ -25,7 +26,7 @@ class ConfigureLogging extends ParentConfigureLogging {
             $emalAddresses = config('logging.send_to_emails') ?: false;
             $emailSubject = config('logging.email_subject') ?: 'Error report';
             self::configureEmails($monolog, $emalAddresses, $emailSubject);
-            $logsFilePath = storage_path('/logs') . '/errors.log.html';
+            $logsFilePath = storage_path('logs/errors.log.html');
             self::configureFileLogs($monolog, $logsFilePath);
         });
     }
@@ -50,7 +51,7 @@ class ConfigureLogging extends ParentConfigureLogging {
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
-            $level = config('app.debug', false) ? Logger::DEBUG : Logger::ERROR;
+            $level = config('app.debug', false) ? Logger::DEBUG : Logger::NOTICE;
             $mail = new NativeMailerHandler(
                 $emailAddresses,
                 $emailSubject,
@@ -66,7 +67,6 @@ class ConfigureLogging extends ParentConfigureLogging {
     }
 
     static public function configureFileLogs(Monolog $monolog, $filePath) {
-        // errors/nitices
         $files = new RotatingFileHandler(
             $filePath,
             365,
