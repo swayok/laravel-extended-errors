@@ -27,5 +27,5 @@
     },
     "support": {
         "issues": "https://github.com/swayok/laravel-extended-errors/issues"
-    },
+    }
 }
