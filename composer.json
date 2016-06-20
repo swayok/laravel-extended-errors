@@ -1,5 +1,5 @@
 {
-    "name": "swayok/laravel_extended_errors",
+    "name": "swayok/laravel-extended-errors",
     "description": "Extended laravel debug exceptions display (more info) and monolog's html emails and html file logs (same html as debug exceptions)",
     "type": "library",
     "license": "MIT",
@@ -17,13 +17,15 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php": ">=5.5.9",
-        "laravel/framework": "5.*"
+        "php": ">=5.5",
+        "laravel/framework": "5.2.*"
     },
     "autoload": {
-        "psr-0": {"LaravelExtendedErrors": "/src"},
-        "psr-4": {
-            "Example\\": "example/"
-        }
-    }
+        "psr-0": {
+			"LaravelExtendedErrors": "/src"
+		}
+    },
+    "support": {
+        "issues": "https://github.com/swayok/laravel-extended-errors/issues"
+    },
 }
