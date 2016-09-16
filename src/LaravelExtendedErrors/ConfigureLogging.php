@@ -51,12 +51,11 @@ class ConfigureLogging extends ParentConfigureLogging {
             if (empty($senderEmail)) {
                 $senderEmail = 'errors@' . (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             }
-            $level = config('app.debug', false) ? Logger::DEBUG : Logger::NOTICE;
             $mail = new NativeMailerHandler(
                 $emailAddresses,
                 $emailSubject,
                 $senderEmail,
-                $level
+                config('logging.log_level', Logger::WARNING)
             );
             $mail->setFormatter(new HtmlFormatter());
             $mail->pushProcessor(new WebProcessor());

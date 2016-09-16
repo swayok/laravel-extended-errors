@@ -16,6 +16,11 @@ return [
     /**
      * Sender's email-address for emails (placed in 'From' header)
      */
-    'email_sender_address' => env('LOGS_EMAIL_FROM', false)
+    'email_sender_address' => env('LOGS_EMAIL_FROM', false),
+
+    /**
+     * Min log-level to report logs (100 - debug, 200 - info, 250 - notice, 300 - warning, 400 - error)
+     */
+    'log_level' => env('LOGS_MIN_LEVEL', 300),
 
 ];
