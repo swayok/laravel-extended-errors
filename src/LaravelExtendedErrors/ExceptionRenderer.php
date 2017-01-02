@@ -37,6 +37,11 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
         $this->debug = (bool)$debug;
     }
 
+    /**
+     * @param $exception
+     * @param bool $onlyHtmlBodyContent
+     * @return Response
+     */
     public function createResponse($exception, $onlyHtmlBodyContent = false) {
         if (!$exception instanceof FlattenException) {
             $exception = FlattenException::create($exception);
@@ -105,6 +110,11 @@ EOF;
 EOF;
         foreach ($this->getAdditionalData() as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
+            foreach ($data as $key => $value) {
+                if (!is_array($value)) {
+                    $data[$key] = htmlentities($value);
+                }
+            }
             $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             $content .= <<<EOF
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
