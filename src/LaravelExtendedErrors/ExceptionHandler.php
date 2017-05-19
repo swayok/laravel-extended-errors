@@ -3,6 +3,7 @@
 namespace LaravelExtendedErrors;
 
 use Exception;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler;
 use Illuminate\Http\JsonResponse;
 use Psr\Log\LoggerInterface;
@@ -27,13 +28,13 @@ class ExceptionHandler extends Handler {
      * @param  \Illuminate\Auth\AuthenticationException $exception
      * @return \Illuminate\Http\Response
      */
-    /*protected function unauthenticated($request) {
+    protected function unauthenticated($request, AuthenticationException $exception) {
         if ($request->expectsJson()) {
             return response()->json(['error' => 'Unauthenticated.'], 401);
         }
 
-        return redirect()->guest('login');
-    }*/
+        return redirect()->guest(route('login'));
+    }
 
     /**
      * @param Exception $exc
@@ -48,7 +49,7 @@ class ExceptionHandler extends Handler {
     }
 
     protected function renderHttpException(HttpException $exc) {
-        if (\Request::ajax()) {
+        if (request()->expectsJson()) {
             /** @var HttpException $exc */
             return $this->convertHttpExceptionToJsonResponse($exc);
         } else {
@@ -58,8 +59,8 @@ class ExceptionHandler extends Handler {
 
     protected function convertHttpExceptionToJsonResponse(HttpException $exc) {
         $data = json_decode($exc->getMessage(), true);
-        if (!is_array($data)) {
-            $data = ['_message' => $exc->getMessage()];
+        if (!is_array($data) && !empty($exc->getMessage())) {
+            $data = ['error' => $exc->getMessage()];
         }
         return new JsonResponse($data, $exc->getStatusCode());
     }
