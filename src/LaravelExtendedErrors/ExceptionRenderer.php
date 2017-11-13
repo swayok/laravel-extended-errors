@@ -108,7 +108,7 @@ EOF;
                 <div style="font-size: 14px !important">
 
 EOF;
-        foreach ($this->getAdditionalData() as $label => $data) {
+        foreach (static::getAdditionalData() as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
@@ -125,12 +125,14 @@ EOF;
         return $this->cleanPasswords($content) . '</div></div>';
     }
 
-    protected function getAdditionalData() {
-        return [
-            '$_GET' => $_GET,
-            '$_POST' => $_POST,
-            '$_FILES' => $_FILES,
-            '$_COOKIE' => class_exists('\Cookie') ? \Cookie::get() : (!empty($_COOKIE) ? $_COOKIE : []),
+    static public function getAdditionalData() {
+        $ret = [
+            '$_GET' => static::cleanPasswordsInArray((array)$_GET),
+            '$_POST' => static::cleanPasswordsInArray((array)$_POST),
+            '$_FILES' => static::cleanPasswordsInArray((array)$_FILES),
+            '$_COOKIE' => static::cleanPasswordsInArray(
+                (array)(class_exists('\Cookie') ? \Cookie::get() : (!empty($_COOKIE) ? $_COOKIE : []))
+            ),
             '$_SERVER' => array_intersect_key($_SERVER, array_flip([
                 'HTTP_ACCEPT_LANGUAGE',
                 'HTTP_ACCEPT_ENCODING',
@@ -151,6 +153,23 @@ EOF;
                 'argc',
             ]))
         ];
+        if (!empty($ret['$_SERVER']['QUERY_STRING'])) {
+            $ret['$_SERVER']['QUERY_STRING'] = static::cleanPasswordsInUrlQuery($ret['$_SERVER']['QUERY_STRING']);
+        }
+        return $ret;
+    }
+
+    static public function cleanPasswordsInArray(array $data) {
+        foreach ($data as $key => &$value) {
+            if (preg_match('(pass(word)?)', $key)) {
+                $value = '*****';
+            }
+        }
+        return $data;
+    }
+
+    static public function cleanPasswordsInUrlQuery($queryString) {
+        return preg_replace('%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im', '$1*****$2', $queryString);
     }
 
     protected function cleanPasswords($content) {
