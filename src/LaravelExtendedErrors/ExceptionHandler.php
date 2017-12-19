@@ -102,7 +102,7 @@ class ExceptionHandler extends Handler {
     }
 
     protected function prepareJsonResponse($request, Exception $exception) {
-        if (config('app.debug') && !($exception instanceof HttpException) && class_exists('PeskyCMF\Config\CmfConfig')) {
+        if ($this->isDebug && !($exception instanceof HttpException) && class_exists('PeskyCMF\Config\CmfConfig')) {
             $prefix = trim(\PeskyCMF\Config\CmfConfig::getPrimary()->url_prefix(), '/ ');
             if (preg_match("%^/{$prefix}(/|$)%", $request->getPathInfo())) {
                 // running inside a PeskyCMF. There are debug.dialog.js that handles ajax errors so we do not want
