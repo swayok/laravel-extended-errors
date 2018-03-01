@@ -1,17 +1,35 @@
 <?php
 
+namespace LaravelExtendedErrors\Renderer;
 
-namespace LaravelExtendedErrors;
-
+use LaravelExtendedErrors\Utils;
 use Symfony\Component\Debug\Exception\FlattenException;
-use Symfony\Component\Debug\ExceptionHandler as SymfonyExceptionRenderer;
-use Symfony\Component\HttpFoundation\Response;
 
-class ExceptionRenderer extends SymfonyExceptionRenderer {
+class ExceptionHtmlRenderer {
 
+    /**
+     * @var FlattenException
+     */
+    protected $exception;
+
+    /**
+     * @var array
+     */
+    protected $logRecord;
+
+    /**
+     * @var string
+     */
     protected $charset;
-    protected $debug;
 
+    /**
+     * @var bool
+     */
+    protected $addRequestInfo = true;
+
+    /**
+     * @var array
+     */
     protected $colors = [
         'page_bg' => '#FFFFFF',
         'content_bg' => '#F5F5F5',
@@ -29,65 +47,54 @@ class ExceptionRenderer extends SymfonyExceptionRenderer {
         'resource' => '#8d0389',
         'json_block_bg' => '#FFFFFF',
         'json_block_border' => '#CCCCCC',
+        'muted' => '#888888',
     ];
 
-    public function __construct($debug = true, $charset = null, $fileLinkFormat = null) {
-        parent::__construct($debug, $charset, $fileLinkFormat);
-        $this->charset = $charset ?: (config('app.DEFAULT_CHARSET') ?: 'UTF-8');
-        $this->debug = (bool)$debug;
+    /**
+     * ExceptionHtmlRenderer constructor.
+     * @param \Exception $exception
+     * @param array $logRecord
+     * @param string|null $charset
+     * @param bool $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
+     */
+    public function __construct(\Exception $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true) {
+        $this->exception = $exception instanceof FlattenException ?: FlattenException::create($exception);
+        $this->logRecord = $logRecord;
+        $this->charset = $charset ?: 'UTF-8';
+        $this->addRequestInfo = $addRequestInfo;
     }
 
-    /**
-     * @param $exception
-     * @param bool $onlyHtmlBodyContent
-     * @return Response
-     */
-    public function createResponse($exception, $onlyHtmlBodyContent = false) {
-        if (!$exception instanceof FlattenException) {
-            $exception = FlattenException::create($exception);
-        }
-        return Response::create(
-            $this->render($exception, $onlyHtmlBodyContent),
-            $exception->getStatusCode(),
-            $exception->getHeaders()
-        )->setCharset($this->charset);
-    }
-
-    /**
-     * @param FlattenException $exception
-     * @param bool $onlyHtmlBodyContent
-     * @return string
-     */
-    protected function render($exception, $onlyHtmlBodyContent = false) {
-        $bodyContent = <<<EOF
-            <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
-            padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
-            border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
-                {$this->getContent($exception)}
-                {$this->getRequestInfo()}
-            </div>
-EOF;
-        if ($onlyHtmlBodyContent) {
-            return $bodyContent;
-        }
+    public function renderPage(): string {
         return <<<EOF
 <!DOCTYPE html>
 <html>
     <head>
         <meta charset="{$this->charset}" />
         <meta name="robots" content="noindex,nofollow" />
-        <title>Error report: {$exception->getMessage()}</title>
-        {$this->getStylesheet($exception)}
+        <title>Error report: {$this->exception->getMessage()}</title>
+        {$this->getStylesheet()}
     </head>
     <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']};">
-        {$bodyContent}
+        {$this->renderPageBody(false)}
     </body>
 </html>
 EOF;
     }
 
-    protected function getRequestInfo() {
-        if (empty($_SERVER['REQUEST_METHOD']) || !$this->debug) {
+    public function renderPageBody($allowJavaScript = false): string {
+        // todo: implement next/prev log navigation using js if alowed
+        return <<<EOF
+            <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
+            padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
+            border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
+                {$this->getContent()}
+                {$this->getRequestInfo()}
+            </div>
+EOF;
+    }
+
+    protected function getRequestInfo(): string {
+        if (empty($_SERVER['REQUEST_METHOD']) || !$this->addRequestInfo) {
             return '';
         }
         $request = request();
@@ -108,7 +115,7 @@ EOF;
                 <div style="font-size: 14px !important">
 
 EOF;
-        foreach (static::getAdditionalData() as $label => $data) {
+        foreach (Utils::getMoreInformationAboutRequest() as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
@@ -122,75 +129,15 @@ EOF;
 EOF;
         }
 
-        return $this->cleanPasswords($content) . '</div></div>';
+        return $content . '</div></div>';
     }
 
-    static public function getAdditionalData() {
-        $ret = [
-            '$_GET' => static::cleanPasswordsInArray((array)$_GET),
-            '$_POST' => static::cleanPasswordsInArray((array)$_POST),
-            '$_FILES' => static::cleanPasswordsInArray((array)$_FILES),
-            '$_COOKIE' => static::cleanPasswordsInArray(
-                (array)(class_exists('\Cookie') ? \Cookie::get() : (!empty($_COOKIE) ? $_COOKIE : []))
-            ),
-            '$_SERVER' => array_intersect_key($_SERVER, array_flip([
-                'HTTP_ACCEPT_LANGUAGE',
-                'HTTP_ACCEPT_ENCODING',
-                'HTTP_REFERER',
-                'HTTP_USER_AGENT',
-                'HTTP_ACCEPT',
-                'HTTP_CONNECTION',
-                'HTTP_HOST',
-                'REMOTE_PORT',
-                'REMOTE_ADDR',
-                'REQUEST_URI',
-                'REQUEST_METHOD',
-                'QUERY_STRING',
-                'DOCUMENT_URI',
-                'REQUEST_TIME_FLOAT',
-                'REQUEST_TIME',
-                'argv',
-                'argc',
-            ]))
-        ];
-        if (!empty($ret['$_SERVER']['QUERY_STRING'])) {
-            $ret['$_SERVER']['QUERY_STRING'] = static::cleanPasswordsInUrlQuery($ret['$_SERVER']['QUERY_STRING']);
-        }
-        return $ret;
-    }
-
-    static public function cleanPasswordsInArray(array $data) {
-        foreach ($data as $key => &$value) {
-            if (preg_match('(pass(word)?)', $key)) {
-                $value = '*****';
-            }
-        }
-        return $data;
-    }
-
-    static public function cleanPasswordsInUrlQuery($queryString) {
-        return preg_replace('%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im', '$1*****$2', $queryString);
-    }
-
-    protected function cleanPasswords($content) {
-        return preg_replace(
-            [
-                '%("[^"]*?pass(?:word)?[^"]*"\s*:\s*")[^"]*"%is', //< for $_GET / $_POST
-                '%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im' //< for $_SERVER (in http query)
-            ],
-            [
-                '$1*****"',
-                '$1*****$2',
-            ],
-            $content
-        );
-    }
-
-    public function getContent(FlattenException $exception) {
+    public function getContent(): string {
         $content = '';
         $title = 'Exception Report';
+        $date = ' @ ' . date('Y-m-d H:i:s') . ' (' . date_default_timezone_get() . ')';
         try {
-            foreach ($exception->toArray() as $position => $e) {
+            foreach ($this->exception->toArray() as $position => $e) {
                 $class = $this->formatClass($e['class']);
                 $message = nl2br($this->escapeHtml($e['message']));
                 $content .= sprintf(<<<EOF
@@ -200,14 +147,23 @@ EOF;
                         <ol>
 
 EOF
-                    , $message, $class, $this->formatPath($e['trace'][0]['file'], $e['trace'][0]['line']));
+                    ,
+                    $message,
+                    $class
+                );
                 foreach ($e['trace'] as $trace) {
                     $content .= '       <li style="border-bottom: 1px solid ' . $this->colors['trace_item_delimiter'] . '; padding: 5px 0 9px 0; margin: 0;">';
-                    if (isset($trace['file']) && isset($trace['line'])) {
-                        $content .= '<p>' . $this->formatPath($trace['file'], $trace['line']) .'</p>';
+                    if (isset($trace['file'], $trace['line'])) {
+                        $content .= '<p>' . $this->formatPath($trace['file'], (int)$trace['line']) .'</p>';
                     }
                     if ($trace['function']) {
-                        $content .= sprintf('<p>at %s<span style="color: ' . $this->colors['error_position'] . '">%s%s</span>( %s )</p>', $this->formatClass($trace['class']), $trace['type'], $trace['function'], $this->formatArgs($trace['args']));
+                        $content .= sprintf(
+                            '<p>at %s<span style="color: ' . $this->colors['error_position'] . '">%s%s</span>( %s )</p>',
+                            $this->formatClass($trace['class']),
+                            $trace['type'],
+                            $trace['function'],
+                            $this->formatArgs($trace['args'])
+                        );
                     }
                     unset($trace['file'], $trace['line'], $trace['short_class'], $trace['namespace']);
                     if (empty($trace['class'])) {
@@ -216,7 +172,6 @@ EOF
                             unset($trace['type']);
                         }
                     }
-                    //$content .= '<pre>' . json_encode($trace, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . '</pre>';
                     $content .= "</li>\n";
                 }
 
@@ -228,12 +183,12 @@ EOF
         }
 
         return <<<EOF
-            <h1>$title</h1>
+            <h1>$title <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span></h1>
             $content
 EOF;
     }
 
-    public function getStylesheet(FlattenException $exception) {
+    protected function getStylesheet(): string {
         $styles = <<<EOF
             <style>
                 html { padding: 10px }
@@ -243,20 +198,21 @@ EOF;
         return $styles;
     }
 
-    protected function escapeHtml($str) {
+    protected function escapeHtml($str): string {
         return htmlspecialchars($str, ENT_QUOTES | (PHP_VERSION_ID >= 50400 ? ENT_SUBSTITUTE : 0), $this->charset);
     }
 
-    protected function formatClass($class) {
+    protected function formatClass($class): string {
         return sprintf('<span style="color: ' . $this->colors['class'] . '">%s</span>', $class);
     }
 
-    protected function formatPath($path, $line) {
+    protected function formatPath(string $path, int $line): string {
+        /** @noinspection CallableParameterUseCaseInTypeContextInspection */
         $path = preg_replace(
             [
-                '%(' . preg_quote(app_path()) . '.*)%i',
-                '%(' . preg_quote(base_path() . DIRECTORY_SEPARATOR . 'vendor') . '.*)%i',
-                '%(' . preg_quote(base_path()) . ')%i',
+                '%(' . preg_quote(app_path(), '%') . '.*)%i',
+                '%(' . preg_quote(base_path() . DIRECTORY_SEPARATOR . 'vendor', '%') . '.*)%i',
+                '%(' . preg_quote(base_path(), '%') . ')%i',
             ],
             [
                 '<span style="color: ' . $this->colors['app_file'] . '; font-weight: bold;">$1</span>',
@@ -270,12 +226,8 @@ EOF;
 
     /**
      * Formats an array as a string.
-     *
-     * @param array $args The argument array
-     *
-     * @return string
      */
-    protected function formatArgs(array $args) {
+    protected function formatArgs(array $args): string {
         $result = array();
         foreach ($args as $key => $item) {
             if ('object' === $item[0]) {

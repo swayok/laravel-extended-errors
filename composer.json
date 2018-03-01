@@ -1,6 +1,6 @@
 {
     "name": "swayok/laravel-extended-errors",
-    "description": "Extended laravel debug exceptions display (more info) and monolog's html emails and html file logs (same html as debug exceptions)",
+    "description": "Extended laravel logs and exceptions logging to files with possibility to send logs via email and telegram",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -12,18 +12,21 @@
         "php",
         "laravel",
         "monolog",
+        "logging",
         "exception",
-        "error"
+        "error",
+        "telegram"
     ],
     "minimum-stability": "dev",
     "require": {
-        "php": ">=5.6",
-        "laravel/framework": ">=5.2"
+        "php": ">=7.1.3",
+        "laravel/framework": ">=5.6",
+        "telegram-bot/api": "^2.2"
     },
     "autoload": {
         "psr-0": {
-			"LaravelExtendedErrors": "/src"
-		}
+            "LaravelExtendedErrors": "/src"
+        }
     },
     "support": {
         "issues": "https://github.com/swayok/laravel-extended-errors/issues"
