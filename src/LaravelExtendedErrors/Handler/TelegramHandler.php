@@ -12,15 +12,15 @@ class TelegramHandler extends AbstractHandler {
     private $token;
     private $chatId;
 
-    private $emojis = [
-        Logger::DEBUG => '🚧',
-        Logger::INFO => '‍🗨',
-        Logger::NOTICE => '🕵',
-        Logger::WARNING => '⚡️',
-        Logger::ERROR => '🚨',
-        Logger::CRITICAL => '🤒',
-        Logger::ALERT => '👀',
-        Logger::EMERGENCY => '🤕',
+    private $levels = [
+        Logger::DEBUG => 'Debug',
+        Logger::INFO => '‍Info',
+        Logger::NOTICE => 'Notice',
+        Logger::WARNING => 'Warning',
+        Logger::ERROR => 'Error',
+        Logger::CRITICAL => 'Critical',
+        Logger::ALERT => 'Alert',
+        Logger::EMERGENCY => 'Emergency',
     ];
 
     public function __construct(int $level, string $token, int $chatId, bool $bubble = false) {
@@ -50,7 +50,7 @@ class TelegramHandler extends AbstractHandler {
             });
             file_put_contents($filePath, $fileContents);
             $document = new \CURLFile($filePath, 'text/html', 'message_from_server_' . date('Y-m-d_H-i-s') . '.html');
-            $message = gethostname() . ' ' . PHP_EOL . $this->emojis[$record['level']] . $record['message'];
+            $message = gethostname() . " / <b>{$this->levels[$record['level']]}</b>: {$record['message']}";
             $this->telegram()->sendDocument($this->chatId, $document, $message);
         } catch (Exception $exception) {
             $success = false;
