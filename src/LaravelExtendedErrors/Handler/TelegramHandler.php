@@ -77,7 +77,11 @@ class TelegramHandler extends AbstractHandler {
                 @unlink($filePath);
             });
             file_put_contents($filePath, $fileContents);
-            $document = new \CURLFile($filePath, 'text/html', 'message_from_server_' . date('Y-m-d_H-i-s') . '.html');
+            $document = new \CURLFile(
+                $filePath,
+                'text/html',
+                strtolower($this->levels[$record['level']]) . '_message_' . date('Y-m-d_H-i-s') . '.html'
+            );
             $message = "*{$this->levels[$record['level']]}* @ " . gethostname() . ": {$record['message']}";
             $this->sendDocument($document, $message);
         } catch (Exception $exception) {

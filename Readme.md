@@ -1,65 +1,116 @@
-# Installation and configuration
+# What is this
+This package provides additional drivers (telegram and email) and log renderers for Laravel logging system. 
+Renderers generate HTML code to be written to log files or sent to external services (slack, email, telegram).
 
-## 1. Install 
+Example of logs:
+[screenshot_log.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot_log.png)
+
+Example of exception log:
+[screenshot_exception.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot_exception.png)
+
+## 1. Installation 
+
+### Laravel <= 5.5
+
+Add require to `composer.json` and run `composer update`
+
+    "require": {
+        "swayok/laravel_extended_errors": "5.5.*",
+    }
+
+[Proceed using step 2 in branch laravel_up_to_5.5](https://github.com/swayok/laravel-extended-errors/blob/laravel_up_to_5.5/Readme.md)
+
+### Laravel 5.6+
+
 Add require to `composer.json` and run `composer update`
 
     "require": {
         "swayok/laravel_extended_errors": "master@dev",
     }
     
-Note: If you're using PeskyCMF - it is already included  
 
-## 2. Add logger to your app
+## Configuration
 
-### a. For Laravel <= 5.3
+### Service provider
 
-To `/bootstrap/app.php` add:
+Automatically added via package auto-discovery.
 
-    \LaravelExtendedErrors\ConfigureLogging::init($app);
+### Renderers
+
+#### HTML renderer injection into `daily` and `single` channel drivers
+
+    'single' => [
+        'driver' => 'single',
+        'path' => storage_path('logs/laravel.html'),
+        'tap' => [\LaravelExtendedErrors\Formatter\HtmlFormatter::class],
+        'level' => 'debug',
+    ],
+
+    'daily' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/laravel.html'),
+        'level' => 'debug',
+        'days' => 7,
+        'tap' => [\LaravelExtendedErrors\Formatter\HtmlFormatter::class],
+    ], 
+
+### Drivers
+
+All changes will be applied to `'channels'` array in `config/logging.php`.
+
+#### Telegram channel
+
+    'telegram' => [
+        'driver' => 'telegram',
+        'token' => env('LOG_TELEGRAM_API_KEY'),
+        'chat_id' => env('LOG_TELEGRAM_CHAT_ID'),
+        'level' => 'debug',
+        'bubble' => false',
+    ]
+
+Rendered logs and exceptions are sent as documents to provided `chat_id`
+
+#### Email channel
+
+    'email' => [
+        'driver' => 'email',
+        'level' => 'debug',
+        'subject' => 'Server log',
+        'sender' => 'local@test.lh',
+        'receiver' => ['your@email.com'],
+        'bubble' => false',
+    ],
+
+**Warning**: there is no limit for exceptions and you may eventually get 
+thousands of errors at once if you use this channels in high loaded project.
+
+#### Sentry
+Actually there is no channel driver for Sentry but here is quick tutorial
+on how to add add exceptions reporting to Sentry via Handler.php:
+
+Require sentry packages:
+
+    "require": {
+        "sentry/sentry": "^1.8",
+        "sentry/sentry-laravel": "^0.8.0",
+    }
     
-### b. For Laravel >= 5.4
+In your `app/Exception/Handler.php` update `report()` method to look like:
 
-To `config/app.php` add `\LaravelExtendedErrors\ExtendedLoggingServiceProvider::class` to `$providers` array. 
-Place it at the beginning to make it work as soon as providers start loading. If there were no errors earlier 
-this logger will replace default laravel's logger before it is created. In other cases - something went wrong
-at applicaton's startup.  
+    public function report(Exception $exception) {
+        if ($this->shouldReport($exception) && app()->bound('sentry')) {
+            app('sentry')->captureException($exception, ['extra' => \LaravelExtendedErrors\Utils::getMoreInformationAboutRequest()]);
+        }
 
-## 3. Configure exception handler
-Modify `app/Exceptions/Handler.php` to extend `LaravelExtendedErrors\ExceptionHandler` or `PeskyCMF\CmfExceptionHandler`:
-
-    class Handler extends LaravelExtendedErrors\ExceptionHandler {
-        /**
-         * A list of the exception types that should not be reported.
-         *
-         * @var array
-         */
-        protected $dontReport = [
-            \Illuminate\Auth\Access\AuthorizationException::class,
-            \Symfony\Component\HttpKernel\Exception\HttpException::class,
-            \Illuminate\Database\Eloquent\ModelNotFoundException::class,
-            \Illuminate\Session\TokenMismatchException::class,
-            \Illuminate\Foundation\Validation\ValidationException::class,
-            \Illuminate\Validation\ValidationException::class,
-        ];
-    
+        parent::report($exception);
     }
 
-## 4. (optional) Configure .env file
+To `.env` file add url provided by Setry when you create a new project there.
+It will look like this:
  
-Configure environment variables in `.env` file or use `config/logging.php` (next step):
+    SENTRY_DSN=https://8158bc7a6110...e7b152b@sentry.domain.com/1
 
-    LOGS_SEND_TO_EMAILS="some1@email.com,some2@email.com"
-    LOGS_EMAIL_SUBJECT="Error report"
-    LOGS_EMAIL_FROM="sender@host.com"
-    LOGS_MIN_LEVEL=300
-    
-Logging levels: 100 - debug, 200 - info, 250 - notice, 300 - warning, 400 - error
-    
-## 5. (optional) Install config file 
-Copy `LaravelExtendedErrors/config/logging.php` to your app's `config` folder (if it is not there already)
-This is needed to make it possible to do `php artisan config:cache`
-Also you can add `\LaravelExtendedErrors\ExtendedLoggingServiceProvider::class` to your `config/app.php` 'providers' list 
-to publish logging config automatically
+Note that there is `'extra'` key used to send report to sentry. 
+This one stores all data from current request just like exception logs generated
+by HTML Renderer. This provides better understanding of what happened.
 
-Now you will get additional information for errors:
-[screenshot.png](https://raw.githubusercontent.com/swayok/laravel_extended_errors/master/screenshot.png)

@@ -3,6 +3,7 @@
 namespace LaravelExtendedErrors\Formatter;
 
 use LaravelExtendedErrors\Renderer\ExceptionHtmlRenderer;
+use LaravelExtendedErrors\Renderer\LogHtmlRenderer;
 use Monolog\Formatter\HtmlFormatter as MonologHtmlFormatter;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
@@ -33,8 +34,7 @@ class HtmlFormatter extends MonologHtmlFormatter {
             unset($record['context']['exception']);
             $renderer = new ExceptionHtmlRenderer($exception, $record);
         } else {
-            return parent::format($record);
-            //$renderer = new LogHtmlRenderer($record);
+            $renderer = new LogHtmlRenderer($record);
         }
         return $this->renderAsPage ? $renderer->renderPage() : $renderer->renderPageBody($this->allowJavaScript);
     }

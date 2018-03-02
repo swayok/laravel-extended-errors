@@ -33,7 +33,7 @@ class ExceptionHtmlRenderer {
     protected $colors = [
         'page_bg' => '#FFFFFF',
         'content_bg' => '#F5F5F5',
-        'content_border' => '#CCCCCC',
+        'content_border' => '#FF0000',
         'project_root' => '#888888',
         'app_file' => '#008d00',
         'vendor_file' => '#8d0389',
@@ -65,7 +65,7 @@ class ExceptionHtmlRenderer {
     }
 
     public function renderPage(): string {
-        return <<<EOF
+        return <<<HTML
 <!DOCTYPE html>
 <html>
     <head>
@@ -78,22 +78,22 @@ class ExceptionHtmlRenderer {
         {$this->renderPageBody(false)}
     </body>
 </html>
-EOF;
+HTML;
     }
 
-    public function renderPageBody($allowJavaScript = false): string {
+    public function renderPageBody(bool $allowJavaScript = false): string {
         // todo: implement next/prev log navigation using js if alowed
-        return <<<EOF
+        return <<<HTML
             <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
             padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
             border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
-                {$this->getContent()}
-                {$this->getRequestInfo()}
+                {$this->renderExceptionContent()}
+                {$this->renderRequestInfo()}
             </div>
-EOF;
+HTML;
     }
 
-    protected function getRequestInfo(): string {
+    protected function renderRequestInfo(): string {
         if (empty($_SERVER['REQUEST_METHOD']) || !$this->addRequestInfo) {
             return '';
         }
@@ -103,18 +103,17 @@ EOF;
         } catch (\UnexpectedValueException $exc) {
             $url = 'Error: ' . $exc->getMessage();
         }
-        $title = 'Request Information';
-        $content = <<<EOF
+        $content = <<<HTML
             <div class="request-info">
                 <hr>
                 <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
-                    <b>{$title}</b><br>
+                    <b>Request Information</b><br>
                 </h2>
                 <h2 style="font-size: 18px;">({$request->getRealMethod()} -> {$request->getMethod()}) $url</h2>
                 <br>
                 <div style="font-size: 14px !important">
 
-EOF;
+HTML;
         foreach (Utils::getMoreInformationAboutRequest() as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
             foreach ($data as $key => $value) {
@@ -123,42 +122,35 @@ EOF;
                 }
             }
             $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $content .= <<<EOF
+            $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                 padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
-EOF;
+HTML;
         }
 
         return $content . '</div></div>';
     }
 
-    public function getContent(): string {
+    public function renderExceptionContent(): string {
         $content = '';
         $title = 'Exception Report';
         $date = ' @ ' . date('Y-m-d H:i:s') . ' (' . date_default_timezone_get() . ')';
         try {
             foreach ($this->exception->toArray() as $position => $e) {
-                $class = $this->formatClass($e['class']);
-                $message = nl2br($this->escapeHtml($e['message']));
-                $content .= sprintf(<<<EOF
-                    <h2>%s</h2>
-                    <h3>Type: %s</h3>
-                    <div style="margin-bottom: 50px;">
-                        <ol>
-
-EOF
-                    ,
-                    $message,
-                    $class
+                $content .= sprintf(
+                    '<h2>%s</h2><h3>Type: %s</h3>',
+                    nl2br($this->escapeHtml($e['message'])),
+                    $this->formatClass($e['class'])
                 );
+                $content .= '<div style="margin-bottom: 50px;"><ol>' . "\n";
                 foreach ($e['trace'] as $trace) {
-                    $content .= '       <li style="border-bottom: 1px solid ' . $this->colors['trace_item_delimiter'] . '; padding: 5px 0 9px 0; margin: 0;">';
+                    $content .= '  <li style="border-bottom: 1px solid ' . $this->colors['trace_item_delimiter'] . '; padding: 5px 0 9px 0; margin: 0;">';
                     if (isset($trace['file'], $trace['line'])) {
-                        $content .= '<p>' . $this->formatPath($trace['file'], (int)$trace['line']) .'</p>';
+                        $content .= '    <p>' . $this->formatPath($trace['file'], (int)$trace['line']) .'</p>';
                     }
                     if ($trace['function']) {
                         $content .= sprintf(
-                            '<p>at %s<span style="color: ' . $this->colors['error_position'] . '">%s%s</span>( %s )</p>',
+                            '    <p>at %s<span style="color: ' . $this->colors['error_position'] . '">%s%s</span>( %s )</p>',
                             $this->formatClass($trace['class']),
                             $trace['type'],
                             $trace['function'],
@@ -172,30 +164,29 @@ EOF
                             unset($trace['type']);
                         }
                     }
-                    $content .= "</li>\n";
+                    $content .= "  </li>\n";
                 }
 
-                $content .= "    </ol>\n</div>";
+                $content .= '</ol></div>';
             }
         } catch (\Exception $e) {
             // something nasty happened and we cannot throw an exception anymore
             $title = sprintf('Exception thrown when handling an exception (%s: %s)', get_class($e), $this->escapeHtml($e->getMessage()));
         }
 
-        return <<<EOF
+        return <<<HTML
             <h1>$title <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span></h1>
             $content
-EOF;
+HTML;
     }
 
     protected function getStylesheet(): string {
-        $styles = <<<EOF
+        return '
             <style>
                 html { padding: 10px }
                 img { border: 0; }
             </style>
-EOF;
-        return $styles;
+        ';
     }
 
     protected function escapeHtml($str): string {

@@ -1,6 +1,6 @@
 {
     "name": "swayok/laravel-extended-errors",
-    "description": "Extended laravel logs and exceptions logging to files with possibility to send logs via email and telegram",
+    "description": "Laravel logging extender used to render logs and exceptions as HTML to store to files and/or send via email and telegram",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -17,7 +17,6 @@
         "error",
         "telegram"
     ],
-    "minimum-stability": "dev",
     "require": {
         "php": ">=7.1.3",
         "laravel/framework": ">=5.6",
@@ -26,6 +25,13 @@
     "autoload": {
         "psr-0": {
             "LaravelExtendedErrors": "/src"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LaravelExtendedErrors\\ExtendedLoggingServiceProvider"
+            ]
         }
     },
     "support": {
