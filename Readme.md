@@ -105,12 +105,12 @@ In your `app/Exception/Handler.php` update `report()` method to look like:
         parent::report($exception);
     }
 
-To `.env` file add url provided by Setry when you create a new project there.
+To `.env` file add url provided by Sentry when you create a new project there.
 It will look like this:
  
     SENTRY_DSN=https://8158bc7a6110...e7b152b@sentry.domain.com/1
 
-Note that there is `'extra'` key used to send report to sentry. 
+Note that there is `'extra'` key used to send report to Sentry. 
 This one stores all data from current request just like exception logs generated
 by HTML Renderer. This provides better understanding of what happened.
 
