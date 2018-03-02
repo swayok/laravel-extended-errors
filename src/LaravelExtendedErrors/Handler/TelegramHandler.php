@@ -6,13 +6,21 @@ use Monolog\Handler\AbstractHandler;
 use Monolog\Logger;
 use TelegramBot\Api\BotApi;
 use TelegramBot\Api\Exception;
+use TelegramBot\Api\Types\Message;
 
 class TelegramHandler extends AbstractHandler {
 
-    private $token;
-    private $chatId;
+    /**
+     * @var int|null
+     */
+    protected $chatId;
 
-    private $levels = [
+    /**
+     * @var BotApi|null
+     */
+    protected $botApi;
+
+    protected $levels = [
         Logger::DEBUG => 'Debug',
         Logger::INFO => '‍Info',
         Logger::NOTICE => 'Notice',
@@ -23,11 +31,31 @@ class TelegramHandler extends AbstractHandler {
         Logger::EMERGENCY => 'Emergency',
     ];
 
+    public const PARSE_MODE_HTML = 'HTML';
+    public const PARSE_MODE_MARKDOWN = 'Markdown';
+
+    /**
+     * @param int $level
+     * @param string $token
+     * @param int $chatId
+     * @param bool $bubble
+     */
     public function __construct(int $level, string $token, int $chatId, bool $bubble = false) {
-        $this->token = $token;
-        $this->chatId = $chatId;
+        if ($token && $chatId) {
+            $this->chatId = $chatId;
+            $this->initBotApi($token);
+        }
 
         parent::__construct($level, $bubble);
+    }
+
+    /**
+     * @param string $token
+     * @return $this
+     */
+    protected function initBotApi(string $token) {
+        $this->botApi = new BotApi($token);
+        return $this;
     }
 
     /**
@@ -38,7 +66,7 @@ class TelegramHandler extends AbstractHandler {
      * @throws \TelegramBot\Api\InvalidArgumentException
      */
     public function handle(array $record): bool {
-        if (empty($this->chatId) || empty($this->token)) {
+        if (!$this->botApi) {
             return false;
         }
         $success = true;
@@ -50,11 +78,11 @@ class TelegramHandler extends AbstractHandler {
             });
             file_put_contents($filePath, $fileContents);
             $document = new \CURLFile($filePath, 'text/html', 'message_from_server_' . date('Y-m-d_H-i-s') . '.html');
-            $message = gethostname() . " / <b>{$this->levels[$record['level']]}</b>: {$record['message']}";
-            $this->telegram()->sendDocument($this->chatId, $document, $message);
+            $message = "*{$this->levels[$record['level']]}* @ " . gethostname() . ": {$record['message']}";
+            $this->sendDocument($document, $message);
         } catch (Exception $exception) {
             $success = false;
-            $this->telegram()->sendMessage($this->chatId, 'There was an error sending exception report. Review file log.');
+            $this->sendMessage('There was an error sending exception report. Review file log.');
         } catch (\Exception $exception) {
             if (!empty($filePath)) {
                 @unlink($filePath);
@@ -67,7 +95,41 @@ class TelegramHandler extends AbstractHandler {
         return $success ? !$this->getBubble() : false;
     }
 
-    private function telegram(): BotApi {
-        return new BotApi($this->token);
+    /**
+     * @param \CURLFile $document
+     * @param string $caption
+     * @param string|null $parseMode
+     * @param bool $disableNotification
+     * @return null|Message
+     * @throws Exception
+     * @throws \TelegramBot\Api\HttpException
+     * @throws \TelegramBot\Api\InvalidJsonException
+     */
+    protected function sendDocument(\CURLFile $document, string $caption = '', string $parseMode = null, bool $disableNotification = false): ?Message {
+        if (!$this->botApi) {
+            return null;
+        }
+        return Message::fromResponse($this->botApi->call('sendDocument', [
+            'chat_id' => $this->chatId,
+            'document' => $document,
+            'caption' => $caption,
+            'parse_mode' => $parseMode,
+            'disable_notification' => $disableNotification,
+        ]));
+    }
+
+    /**
+     * @param string $message
+     * @param string|null $parseMode
+     * @param bool $disableNotification
+     * @return null|Message
+     * @throws Exception
+     * @throws \TelegramBot\Api\InvalidArgumentException
+     */
+    protected function sendMessage(string $message, string $parseMode = null, bool $disableNotification = false): ?Message {
+        if (!$this->botApi) {
+            return null;
+        }
+        return $this->botApi->sendMessage($this->chatId, $message, $parseMode, false, null, null, $disableNotification);
     }
 }
