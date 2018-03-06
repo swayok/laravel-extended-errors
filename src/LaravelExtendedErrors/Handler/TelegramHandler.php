@@ -40,7 +40,7 @@ class TelegramHandler extends AbstractHandler {
      * @param int $chatId
      * @param bool $bubble
      */
-    public function __construct(int $level, string $token, int $chatId, bool $bubble = false) {
+    public function __construct(int $level, string $token = null, int $chatId = null, bool $bubble = false) {
         if ($token && $chatId) {
             $this->chatId = $chatId;
             $this->initBotApi($token);
