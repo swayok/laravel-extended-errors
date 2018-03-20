@@ -82,7 +82,7 @@ class TelegramHandler extends AbstractHandler {
                 'text/html',
                 strtolower($this->levels[$record['level']]) . '_message_' . date('Y-m-d_H-i-s') . '.html'
             );
-            $message = "*{$this->levels[$record['level']]}* @ " . gethostname() . ": {$record['message']}";
+            $message = substr("*{$this->levels[$record['level']]}* @ " . gethostname() . ": " . $record['message'], 0, 200);
             $this->sendDocument($document, $message);
         } catch (Exception $exception) {
             $success = false;
