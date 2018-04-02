@@ -145,6 +145,9 @@ HTML;
 HTML;
         foreach ((array)$context as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
+            if (!is_array($data)) {
+                $data = [$data];
+            }
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
                     $data[$key] = htmlentities($value);
