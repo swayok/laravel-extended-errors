@@ -2,7 +2,6 @@
 
 namespace LaravelExtendedErrors;
 
-use Illuminate\Log\LogManager;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
 use LaravelExtendedErrors\Handler\TelegramHandler;
@@ -21,8 +20,8 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
      * @return void
      */
     public function register() {
-        /** @var LogManager $logManager */
-        $logManager = $this->app['log'];
+        /** @var ExtendedLogManager $logManager */
+        $logManager = $this->replaceLogManager();
 
         /*
             Channel Config:
@@ -51,11 +50,21 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
     }
 
     /**
-     * @param LogManager $logManager
+     * @return ExtendedLogManager
+     */
+    protected function replaceLogManager() {
+        $this->app->singleton('log', function () {
+            return new ExtendedLogManager($this->app);
+        });
+        return $this->app['log'];
+    }
+
+    /**
+     * @param ExtendedLogManager $logManager
      */
     protected function registerTelegramChannelDriver($logManager) {
         $logManager->extend('telegram', function ($app, array $config) {
-            /** @var LogManager $this */
+            /** @var ExtendedLogManager $this */
             $handler = new TelegramHandler(
                 $this->level($config),
                 array_get($config, 'token'),
@@ -68,11 +77,11 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
     }
 
     /**
-     * @param LogManager $logManager
+     * @param ExtendedLogManager $logManager
      */
     protected function registerEmailChannelDriver($logManager) {
         $logManager->extend('email', function ($app, array $config) {
-            /** @var LogManager $this */
+            /** @var ExtendedLogManager $this */
             $senderEmail = array_get($config, 'sender');
             $ip = (empty($_SERVER['SERVER_ADDR']) ? 'undefined ip' : $_SERVER['HTTP_HOST']);
             $host = (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
