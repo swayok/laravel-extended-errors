@@ -2,16 +2,20 @@
 
 namespace LaravelExtendedErrors;
 
+use Illuminate\Foundation\Application;
+use Illuminate\Mail\TransportManager;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
 use LaravelExtendedErrors\Handler\TelegramHandler;
+use LaravelExtendedErrors\MailTransport\ExtendedLogTransport;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 class ExtendedLoggingServiceProvider extends ServiceProvider {
 
     public function boot() {
-
+        $this->replaceMailLogTransport();
     }
 
     /**
@@ -99,6 +103,15 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
                 ->setContentType('text/html')
                 ->setFormatter(new EmailFormatter());
             return new Logger($this->parseChannel($config), [$handler]);
+        });
+    }
+
+    protected function replaceMailLogTransport() {
+        /** @var TransportManager $swiftTransport */
+        $swiftTransport = $this->app->make('swift.transport');
+        $swiftTransport->extend('log', function ($app) {
+            /** @var Application $app */
+            return new ExtendedLogTransport($app->make(LoggerInterface::class));
         });
     }
 

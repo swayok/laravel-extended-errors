@@ -3,6 +3,7 @@
 namespace LaravelExtendedErrors\Formatter;
 
 use LaravelExtendedErrors\Renderer\ExceptionHtmlRenderer;
+use LaravelExtendedErrors\Renderer\LogEmailRenderer;
 use LaravelExtendedErrors\Renderer\LogHtmlRenderer;
 use Monolog\Formatter\HtmlFormatter as MonologHtmlFormatter;
 use Monolog\Logger;
@@ -24,15 +25,22 @@ class HtmlFormatter extends MonologHtmlFormatter {
     }
 
     public function format(array $record) {
+        $hasContext = isset($record['context']) && is_array($record['context']);
         if (
-            isset($record['context'])
-            && is_array($record['context'])
+            $hasContext
             && isset($record['context']['exception'])
             && $record['context']['exception'] instanceof \Exception
         ) {
             $exception = $record['context']['exception'];
             unset($record['context']['exception']);
             $renderer = new ExceptionHtmlRenderer($exception, $record);
+        } else if (
+            $hasContext
+            && isset($record['context']['email_message'])
+            && is_array($record['context']['email_message'])
+            && isset($record['context']['email_message']['headers'], $record['context']['email_message']['body'])
+        ) {
+            $renderer = new LogEmailRenderer($record);
         } else {
             $renderer = new LogHtmlRenderer($record);
         }
