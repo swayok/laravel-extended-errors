@@ -15,7 +15,7 @@ Example of exception log:
 Add require to `composer.json` and run `composer update`
 
     "require": {
-        "swayok/laravel_extended_errors": "5.5.*",
+        "swayok/laravel-extended-errors": "5.5.*",
     }
 
 [Proceed using step 2 in branch laravel_up_to_5.5](https://github.com/swayok/laravel-extended-errors/blob/laravel_up_to_5.5/Readme.md)
@@ -25,7 +25,7 @@ Add require to `composer.json` and run `composer update`
 Add require to `composer.json` and run `composer update`
 
     "require": {
-        "swayok/laravel_extended_errors": "master@dev",
+        "swayok/laravel-extended-errors": "master@dev",
     }
     
 
