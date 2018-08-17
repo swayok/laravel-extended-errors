@@ -14,7 +14,7 @@ class ExtendedLogManager extends LogManager {
      *
      * @return void
      */
-    public function exception(\Exception $exception, array $context = []) {
+    public function exception(\Throwable $exception, array $context = []) {
         $context['exception'] = $exception;
         return $this->critical($exception->getMessage(), $context);
     }
