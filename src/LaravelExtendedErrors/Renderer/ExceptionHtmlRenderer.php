@@ -58,7 +58,7 @@ class ExceptionHtmlRenderer {
      * @param bool $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
      */
     public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true) {
-        $this->exception = $exception instanceof FlattenException ?: FlattenException::create($exception);
+        $this->exception = $exception instanceof FlattenException ?: FlattenException::createFromThrowable($exception);
         $this->logRecord = $logRecord;
         $this->charset = $charset ?: 'UTF-8';
         $this->addRequestInfo = $addRequestInfo;

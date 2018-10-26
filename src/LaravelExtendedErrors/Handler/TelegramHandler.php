@@ -34,6 +34,8 @@ class TelegramHandler extends AbstractHandler {
     public const PARSE_MODE_HTML = 'HTML';
     public const PARSE_MODE_MARKDOWN = 'Markdown';
 
+    static protected $ignoreNextExceptcion = false;
+
     /**
      * @param int $level
      * @param string $token
@@ -62,12 +64,14 @@ class TelegramHandler extends AbstractHandler {
      * @param array $record
      * @return Boolean true means that this handler handled the record, and that bubbling is not permitted.
      *         false means the record was either not processed or that this handler allows bubbling.
-     * @throws Exception
-     * @throws \TelegramBot\Api\InvalidArgumentException
      */
     public function handle(array $record): bool {
         if (!$this->botApi) {
             return false;
+        }
+        if (static::$ignoreNextExceptcion) {
+            static::$ignoreNextExceptcion = false;
+            return true;
         }
         $success = true;
         try {
@@ -82,16 +86,24 @@ class TelegramHandler extends AbstractHandler {
                 'text/html',
                 strtolower($this->levels[$record['level']]) . '_message_' . date('Y-m-d_H-i-s') . '.html'
             );
-            $message = substr("*{$this->levels[$record['level']]}* @ " . gethostname() . ": " . $record['message'], 0, 200);
+            $message = substr("*{$this->levels[$record['level']]}* @ " . gethostname() . ': ' . $record['message'], 0, 200);
             $this->sendDocument($document, $message);
         } catch (Exception $exception) {
             $success = false;
-            $this->sendMessage('There was an error sending exception report. Review file log.');
+            static::$ignoreNextExceptcion = true;
+            \Log::debug($exception->getMessage());
+            static::$ignoreNextExceptcion = false;
+            try {
+                $this->sendMessage('There was an error sending exception report. Review file log.');
+            } catch (\Exception $exception) {
+            }
         } catch (\Throwable $exception) {
             if (!empty($filePath)) {
                 @unlink($filePath);
             }
-            throw $exception;
+            static::$ignoreNextExceptcion = true;
+            \Log::critical($exception);
+            static::$ignoreNextExceptcion = false;
         }
         if (!empty($filePath)) {
             @unlink($filePath);
