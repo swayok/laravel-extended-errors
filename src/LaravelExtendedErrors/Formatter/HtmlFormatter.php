@@ -29,7 +29,7 @@ class HtmlFormatter extends MonologHtmlFormatter {
         if (
             $hasContext
             && isset($record['context']['exception'])
-            && $record['context']['exception'] instanceof \Exception
+            && $record['context']['exception'] instanceof \Throwable
         ) {
             $exception = $record['context']['exception'];
             unset($record['context']['exception']);

@@ -52,12 +52,12 @@ class ExceptionHtmlRenderer {
 
     /**
      * ExceptionHtmlRenderer constructor.
-     * @param \Exception $exception
+     * @param \Throwable $exception
      * @param array $logRecord
      * @param string|null $charset
      * @param bool $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
      */
-    public function __construct(\Exception $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true) {
+    public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true) {
         $this->exception = $exception instanceof FlattenException ?: FlattenException::create($exception);
         $this->logRecord = $logRecord;
         $this->charset = $charset ?: 'UTF-8';
@@ -169,7 +169,7 @@ HTML;
 
                 $content .= '</ol></div>';
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // something nasty happened and we cannot throw an exception anymore
             $title = sprintf('Exception thrown when handling an exception (%s: %s)', get_class($e), $this->escapeHtml($e->getMessage()));
         }

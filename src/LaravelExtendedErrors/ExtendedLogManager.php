@@ -7,9 +7,9 @@ use Illuminate\Log\LogManager;
 class ExtendedLogManager extends LogManager {
 
     /**
-     * Exceptions (logged usin critical log level)
+     * Exceptions (logged using critical log level)
      *
-     * @param \Exception $exception
+     * @param \Throwable $exception
      * @param array $context
      *
      * @return void

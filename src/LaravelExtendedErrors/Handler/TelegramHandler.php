@@ -87,11 +87,11 @@ class TelegramHandler extends AbstractHandler {
         } catch (Exception $exception) {
             $success = false;
             $this->sendMessage('There was an error sending exception report. Review file log.');
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             if (!empty($filePath)) {
                 @unlink($filePath);
             }
-            throw new $exception;
+            throw $exception;
         }
         if (!empty($filePath)) {
             @unlink($filePath);
