@@ -38,14 +38,16 @@ class TelegramHandler extends AbstractHandler {
 
     /**
      * @param int $level
-     * @param string $token
-     * @param int $chatId
+     * @param string|null $token
+     * @param int|null $chatId
      * @param bool $bubble
+     * @param array|null $proxy
      */
-    public function __construct(int $level, string $token = null, int $chatId = null, bool $bubble = false) {
+    public function __construct(int $level, ?string $token = null, ?int $chatId = null, bool $bubble = false, ?array $proxy = null) {
         if ($token && $chatId) {
             $this->chatId = $chatId;
             $this->initBotApi($token);
+            $this->setupProxy($proxy);
         }
 
         parent::__construct($level, $bubble);
@@ -57,6 +59,36 @@ class TelegramHandler extends AbstractHandler {
      */
     protected function initBotApi(string $token) {
         $this->botApi = new BotApi($token);
+        return $this;
+    }
+
+    /**
+     * @param array|null $proxy
+     * @return $this
+     */
+    protected function setupProxy(?array $proxy) {
+        if (!empty($proxy) && !empty($proxy['host']) && !empty($proxy['port'])) {
+            $proxyServer = $proxy['host'] . ':' . $proxy['port'];
+            if (empty($proxy['user']) || empty($proxy['password'])) {
+                $this->botApi->setProxy($proxyServer);
+            } else {
+                $this->botApi->setCurlOption(CURLOPT_HTTPPROXYTUNNEL, true);
+                $this->botApi->setCurlOption(CURLOPT_PROXY, $proxyServer);
+                switch (array_get($proxy, 'type')) {
+                    case 'socks4':
+                        $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
+                        break;
+                    case 'socks5':
+                        $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
+                        break;
+                    case 'http':
+                    default:
+                        $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+                }
+                $this->botApi->setCurlOption(CURLOPT_PROXYUSERPWD, $proxy['user'] . ':' . $proxy['password']);
+                $this->botApi->setCurlOption(CURLOPT_PROXYAUTH, CURLAUTH_BASIC);
+            }
+        }
         return $this;
     }
 

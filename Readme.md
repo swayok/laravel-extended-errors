@@ -64,11 +64,26 @@ All changes will be applied to `'channels'` array in `config/logging.php`.
         'driver' => 'telegram',
         'token' => env('LOG_TELEGRAM_API_KEY'),
         'chat_id' => env('LOG_TELEGRAM_CHAT_ID'),
+        'proxy' => [
+            'type' => env('LOG_TELEGRAM_PROXY_TYPE', 'http'),
+            'host' => env('LOG_TELEGRAM_PROXY_HOST'),
+            'port' => env('LOG_TELEGRAM_PROXY_PORT'),
+            'user' => env('LOG_TELEGRAM_PROXY_USER'),
+            'password' => env('LOG_TELEGRAM_PROXY_PASSWORD'),
+        ],
         'level' => 'debug',
         'bubble' => false',
     ]
 
 Rendered logs and exceptions are sent as documents to provided `chat_id`
+
+**Proxy settings:**
+- `proxy.type` can be: `http`, `socks4`, `socks5`
+- `proxy.user` and `proxy.password` can be empty if proxy has no authorisation
+
+Proxy uses Basic Auth method to send user and password. 
+Other auth methods not supported right now. 
+Make an issue if you need some and CURL suppots it.
 
 #### Email channel
 

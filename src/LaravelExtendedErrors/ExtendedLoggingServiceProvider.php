@@ -73,7 +73,8 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
                 $this->level($config),
                 array_get($config, 'token'),
                 array_get($config, 'chat_id'),
-                array_get($config, 'bubble', false)
+                array_get($config, 'bubble', false),
+                array_get($config, 'proxy')
             );
             $handler->setFormatter(new EmailFormatter());
             return new Logger($this->parseChannel($config), [$handler]);
