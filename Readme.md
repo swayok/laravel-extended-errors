@@ -78,12 +78,29 @@ All changes will be applied to `'channels'` array in `config/logging.php`.
 Rendered logs and exceptions are sent as documents to provided `chat_id`
 
 **Proxy settings:**
-- `proxy.type` can be: `http`, `socks4`, `socks5`
+- `proxy.type` can be: `http`, `socks4`, `socks5`, `nginx`
 - `proxy.user` and `proxy.password` can be empty if proxy has no authorisation
+- `proxy.host` for `nginx` proxy type should be an url like `http://bot.yourdomain.com`
+or `https://bot.yourdomain.com` or `http://bot.yourdomain.com:8080`; 
+`proxy.port`; auth configs may be used;
 
 Proxy uses Basic Auth method to send user and password. 
 Other auth methods not supported right now. 
 Make an issue if you need some and CURL suppots it.
+
+**Nginx vhost config to proxy requests to api.telegram.org**
+
+    server {
+        listen 80;
+        server_name bot.yourdomain.com;
+        location / {
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_pass https://api.telegram.org/;
+            client_max_body_size 100M;
+        }
+    }
 
 #### Email channel
 

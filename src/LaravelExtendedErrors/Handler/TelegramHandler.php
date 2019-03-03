@@ -2,6 +2,7 @@
 
 namespace LaravelExtendedErrors\Handler;
 
+use LaravelExtendedErrors\Utils\TelegramBotApi;
 use Monolog\Handler\AbstractHandler;
 use Monolog\Logger;
 use TelegramBot\Api\BotApi;
@@ -16,7 +17,7 @@ class TelegramHandler extends AbstractHandler {
     protected $chatId;
 
     /**
-     * @var BotApi|null
+     * @var BotApi|TelegramBotApi|null
      */
     protected $botApi;
 
@@ -46,8 +47,7 @@ class TelegramHandler extends AbstractHandler {
     public function __construct(int $level, ?string $token = null, ?int $chatId = null, bool $bubble = false, ?array $proxy = null) {
         if ($token && $chatId) {
             $this->chatId = $chatId;
-            $this->initBotApi($token);
-            $this->setupProxy($proxy);
+            $this->initBotApi($token, $proxy);
         }
 
         parent::__construct($level, $bubble);
@@ -55,18 +55,22 @@ class TelegramHandler extends AbstractHandler {
 
     /**
      * @param string $token
-     * @return $this
+     * @param array|null $proxy
      */
-    protected function initBotApi(string $token) {
-        $this->botApi = new BotApi($token);
-        return $this;
+    protected function initBotApi(string $token, ?array $proxy = null) {
+        if (empty($proxy) || array_get($proxy, 'type') !== 'nginx') {
+            $this->botApi = new BotApi($token);
+            $this->setupNormalProxy($proxy);
+        } else {
+            $this->botApi = new TelegramBotApi($token);
+            $this->setupNginxProxy($proxy);
+        }
     }
 
     /**
      * @param array|null $proxy
-     * @return $this
      */
-    protected function setupProxy(?array $proxy) {
+    protected function setupNormalProxy(?array $proxy) {
         if (!empty($proxy) && !empty($proxy['host']) && !empty($proxy['port'])) {
             $proxyServer = $proxy['host'] . ':' . $proxy['port'];
             if (empty($proxy['user']) || empty($proxy['password'])) {
@@ -89,7 +93,19 @@ class TelegramHandler extends AbstractHandler {
                 $this->botApi->setCurlOption(CURLOPT_PROXYAUTH, CURLAUTH_BASIC);
             }
         }
-        return $this;
+    }
+
+    /**
+     * @param array|null $proxy
+     */
+    protected function setupNginxProxy(?array $proxy) {
+        if (!empty($proxy) && !empty($proxy['host']) && strpos($proxy['host'], 'http') === 0) {
+            $this->botApi->setApiBaseUrl($proxy['host']);
+            if (!empty($proxy['user']) && !empty($proxy['password'])) {
+                $this->botApi->setCurlOption(CURLOPT_PROXYAUTH, CURLAUTH_BASIC);
+                $this->botApi->setCurlOption(CURLOPT_PROXYUSERPWD, $proxy['user'] . ':' . $proxy['password']);
+            }
+        }
     }
 
     /**
