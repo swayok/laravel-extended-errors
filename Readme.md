@@ -80,13 +80,14 @@ Rendered logs and exceptions are sent as documents to provided `chat_id`
 **Proxy settings:**
 - `proxy.type` can be: `http`, `socks4`, `socks5`, `nginx`
 - `proxy.user` and `proxy.password` can be empty if proxy has no authorisation
-- `proxy.host` for `nginx` proxy type should be an url like `http://bot.yourdomain.com`
-or `https://bot.yourdomain.com` or `http://bot.yourdomain.com:8080`; 
-`proxy.port`; auth configs may be used;
+- `proxy.host` for `http`, `socks4` and `socks5` types usually is an IP address like `192.168.1.1`
+- `proxy.host` for `nginx` type should be a full url like `http://bot.yourdomain.com`
+,`https://bot.yourdomain.com` or `http://bot.yourdomain.com:8080`; 
+`proxy.port` is not used for this type;
 
 Proxy uses Basic Auth method to send user and password. 
-Other auth methods not supported right now. 
-Make an issue if you need some and CURL suppots it.
+Other auth methods are not supported right now. 
+Make an issue if you need some (make sure CURL suppots it).
 
 **Nginx vhost config to proxy requests to api.telegram.org**
 
