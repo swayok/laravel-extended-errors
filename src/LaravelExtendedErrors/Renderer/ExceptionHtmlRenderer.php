@@ -121,7 +121,7 @@ HTML;
                     $data[$key] = htmlentities($value);
                 }
             }
-            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                 padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
