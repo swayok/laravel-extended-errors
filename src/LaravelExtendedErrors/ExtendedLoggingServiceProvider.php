@@ -3,6 +3,7 @@
 namespace LaravelExtendedErrors;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Log\ParsesLogConfiguration;
 use Illuminate\Mail\TransportManager;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
@@ -13,6 +14,17 @@ use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 
 class ExtendedLoggingServiceProvider extends ServiceProvider {
+
+    use ParsesLogConfiguration;
+
+    /**
+     * Get fallback log channel name.
+     *
+     * @return string
+     */
+    protected function getFallbackChannelName() {
+        return 'production';
+    }
 
     public function boot() {
         $this->replaceMailLogTransport();

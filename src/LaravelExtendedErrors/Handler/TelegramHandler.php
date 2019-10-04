@@ -3,13 +3,13 @@
 namespace LaravelExtendedErrors\Handler;
 
 use LaravelExtendedErrors\Utils\TelegramBotApi;
-use Monolog\Handler\AbstractHandler;
+use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Logger;
 use TelegramBot\Api\BotApi;
 use TelegramBot\Api\Exception;
 use TelegramBot\Api\Types\Message;
 
-class TelegramHandler extends AbstractHandler {
+class TelegramHandler extends AbstractProcessingHandler {
 
     /**
      * @var int|null
@@ -110,18 +110,15 @@ class TelegramHandler extends AbstractHandler {
 
     /**
      * @param array $record
-     * @return Boolean true means that this handler handled the record, and that bubbling is not permitted.
-     *         false means the record was either not processed or that this handler allows bubbling.
      */
-    public function handle(array $record): bool {
+    protected function write(array $record): void {
         if (!$this->botApi) {
-            return false;
+            return;
         }
         if (static::$ignoreNextExceptcion) {
             static::$ignoreNextExceptcion = false;
-            return true;
+            return;
         }
-        $success = true;
         try {
             $fileContents = $this->getFormatter()->format($record);
             $filePath = tempnam(sys_get_temp_dir(), 'php');
@@ -137,7 +134,6 @@ class TelegramHandler extends AbstractHandler {
             $message = substr("*{$this->levels[$record['level']]}* @ " . gethostname() . ': ' . $record['message'], 0, 200);
             $this->sendDocument($document, $message);
         } catch (Exception $exception) {
-            $success = false;
             static::$ignoreNextExceptcion = true;
             \Log::debug($exception->getMessage());
             static::$ignoreNextExceptcion = false;
@@ -157,7 +153,6 @@ class TelegramHandler extends AbstractHandler {
         if (!empty($filePath)) {
             @unlink($filePath);
         }
-        return $success ? !$this->getBubble() : false;
     }
 
     /**
