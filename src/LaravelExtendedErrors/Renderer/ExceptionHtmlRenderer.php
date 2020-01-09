@@ -149,7 +149,7 @@ HTML;
         if (!$this->addUserInfo) {
             return '';
         }
-        $user = \Auth::guard()->user();
+        $user = request()->user();
         $content = <<<HTML
             <div class="user-info">
                 <hr>
