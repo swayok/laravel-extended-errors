@@ -3,12 +3,11 @@
 namespace LaravelExtendedErrors\Renderer;
 
 use LaravelExtendedErrors\Utils;
-use Symfony\Component\Debug\Exception\FlattenException;
 
 class ExceptionHtmlRenderer {
 
     /**
-     * @var FlattenException
+     * @var \Symfony\Component\ErrorHandler\Exception\FlattenException
      */
     protected $exception;
 
@@ -26,6 +25,11 @@ class ExceptionHtmlRenderer {
      * @var bool
      */
     protected $addRequestInfo = true;
+
+    /**
+     * @var bool
+     */
+    protected $addUserInfo = true;
 
     /**
      * @var array
@@ -56,12 +60,21 @@ class ExceptionHtmlRenderer {
      * @param array $logRecord
      * @param string|null $charset
      * @param bool $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
+     * @param bool $addUserInfo - true: some user data will be added to exception report (class and primary key value received for Auth::guard()->user()
      */
-    public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true) {
-        $this->exception = $exception instanceof FlattenException ?: FlattenException::createFromThrowable($exception);
+    public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true, bool $addUserInfo = true) {
+        if (
+            (class_exists('\Symfony\Component\ErrorHandler\Exception\FlattenException') && $exception instanceof \Symfony\Component\ErrorHandler\Exception\FlattenException)
+            || (class_exists('\Symfony\Component\Debug\Exception\FlattenException') && $exception instanceof \Symfony\Component\Debug\Exception\FlattenException)
+        ) {
+            $this->exception = $exception;
+        } else {
+            $this->exception = \Symfony\Component\ErrorHandler\Exception\FlattenException::createFromThrowable($exception);
+        }
         $this->logRecord = $logRecord;
         $this->charset = $charset ?: 'UTF-8';
         $this->addRequestInfo = $addRequestInfo;
+        $this->addUserInfo = $addUserInfo;
     }
 
     public function renderPage(): string {
@@ -88,13 +101,14 @@ HTML;
             padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
             border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
                 {$this->renderExceptionContent()}
+                {$this->renderUserInfo()}
                 {$this->renderRequestInfo()}
             </div>
 HTML;
     }
 
     protected function renderRequestInfo(): string {
-        if (empty($_SERVER['REQUEST_METHOD']) || !$this->addRequestInfo) {
+        if (!$this->addRequestInfo || empty($_SERVER['REQUEST_METHOD'])) {
             return '';
         }
         $request = request();
@@ -128,6 +142,38 @@ HTML;
 HTML;
         }
 
+        return $content . '</div></div>';
+    }
+
+    protected function renderUserInfo(): string {
+        if (!$this->addUserInfo) {
+            return '';
+        }
+        $user = \Auth::guard()->user();
+        $content = <<<HTML
+            <div class="user-info">
+                <hr>
+                <h2 style="margin: 20px 0 20px 0; text-align: center; font-weight: bold; font-size: 18px;">
+                    <b>User Information</b><br>
+                </h2>
+                <div style="font-size: 14px !important">
+
+HTML;
+        if (!$user) {
+            $content .= '<b>Not authenticated</b>';
+        } else {
+            $data = Utils::getUserInfo($user);
+            foreach ($data as $key => $value) {
+                if (!is_array($value)) {
+                    $data[$key] = htmlentities($value);
+                }
+            }
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $content .= <<<HTML
+                <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
+                padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
+HTML;
+        }
         return $content . '</div></div>';
     }
 
