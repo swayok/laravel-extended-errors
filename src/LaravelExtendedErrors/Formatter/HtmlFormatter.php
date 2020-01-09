@@ -24,7 +24,7 @@ class HtmlFormatter extends MonologHtmlFormatter {
         }
     }
 
-    public function format(array $record) {
+    public function format(array $record): string {
         $hasContext = isset($record['context']) && is_array($record['context']);
         if (
             $hasContext
