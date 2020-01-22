@@ -2,6 +2,8 @@
 
 namespace LaravelExtendedErrors;
 
+use Illuminate\Contracts\Auth\Authenticatable;
+
 class Utils {
 
     static public function getMoreInformationAboutRequest(): array {
@@ -40,6 +42,13 @@ class Utils {
             $ret['$_SERVER']['QUERY_STRING'] = static::cleanPasswordsInUrlQuery($ret['$_SERVER']['QUERY_STRING']);
         }
         return $ret;
+    }
+
+    static public function getUserInfo(Authenticatable $user) {
+        return [
+            'class' => get_class($user),
+            $user->getAuthIdentifierName() => $user->getAuthIdentifier()
+        ];
     }
 
     static public function cleanPasswordsInArray(array $data): array {
