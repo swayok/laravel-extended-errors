@@ -147,3 +147,6 @@ Note that there is `'extra'` key used to send report to Sentry.
 This one stores all data from current request just like exception logs generated
 by HTML Renderer. This provides better understanding of what happened.
 
+#### Whoops exception page replacement
+To replace HTML exception pages rendered by built-in Laravel's Whoops handler with 
+exception page rendered by this package you need to add `'replace_whoops' => true,` to `config/logging.php`

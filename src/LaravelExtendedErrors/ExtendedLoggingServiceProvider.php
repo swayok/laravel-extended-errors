@@ -6,11 +6,14 @@ use Illuminate\Foundation\Application;
 use Illuminate\Mail\TransportManager;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
+use LaravelExtendedErrors\Handler\ExceptionPageHandler;
 use LaravelExtendedErrors\Handler\TelegramHandler;
+use LaravelExtendedErrors\Handler\WhoopsReplaceHandler;
 use LaravelExtendedErrors\MailTransport\ExtendedLogTransport;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
+use Whoops\Handler\HandlerInterface;
 
 class ExtendedLoggingServiceProvider extends ServiceProvider {
 
@@ -51,6 +54,12 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             Note: 'receiver' can be a string (single email) or array (several emails)
         */
         $this->registerEmailChannelDriver($logManager);
+
+        /*
+            Config:
+            'logging.replace_whoops' => true/false
+         */
+        $this->replaceWhoopsPrettyPrintHandler();
     }
 
     /**
@@ -114,6 +123,14 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             /** @var Application $app */
             return new ExtendedLogTransport($app->make(LoggerInterface::class));
         });
+    }
+
+    protected function replaceWhoopsPrettyPrintHandler() {
+        if ($this->app['config']['logging.replace_whoops']) {
+            $this->app->bind(HandlerInterface::class, function () {
+                return new ExceptionPageHandler();
+            });
+        }
     }
 
 }
