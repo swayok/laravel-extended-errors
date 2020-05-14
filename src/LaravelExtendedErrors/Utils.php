@@ -2,6 +2,8 @@
 
 namespace LaravelExtendedErrors;
 
+use Illuminate\Contracts\Auth\Authenticatable;
+
 class Utils {
 
     static public function getMoreInformationAboutRequest(): array {
@@ -32,10 +34,21 @@ class Utils {
                 'argc',
             ]))
         ];
+        if (empty($_POST) && isset($_SERVER['REQUEST_METHOD']) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'])) {
+            // json-encoded or PUT/DELETE
+            $ret['$_POST'] = static::cleanPasswordsInArray((array)request()->input());
+        }
         if (!empty($ret['$_SERVER']['QUERY_STRING'])) {
             $ret['$_SERVER']['QUERY_STRING'] = static::cleanPasswordsInUrlQuery($ret['$_SERVER']['QUERY_STRING']);
         }
         return $ret;
+    }
+
+    static public function getUserInfo(Authenticatable $user) {
+        return [
+            'class' => get_class($user),
+            $user->getAuthIdentifierName() => $user->getAuthIdentifier()
+        ];
     }
 
     static public function cleanPasswordsInArray(array $data): array {
