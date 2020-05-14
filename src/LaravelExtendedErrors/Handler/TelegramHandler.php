@@ -131,16 +131,23 @@ class TelegramHandler extends AbstractProcessingHandler {
                 'text/html',
                 strtolower($this->levels[$record['level']]) . '_message_' . date('Y-m-d_H-i-s') . '.html'
             );
-            $message = substr("*{$this->levels[$record['level']]}* @ " . gethostname() . ': ' . $record['message'], 0, 200);
-            $this->sendDocument($document, $message);
-        } catch (Exception $exception) {
-            static::$ignoreNextExceptcion = true;
-            \Log::debug($exception->getMessage());
-            static::$ignoreNextExceptcion = false;
+            $messagePrefix = "*{$this->levels[$record['level']]}* @ " . gethostname();
+            $message = substr($messagePrefix . ': ' . $record['message'], 0, 200);
             try {
-                $this->sendMessage('There was an error sending exception report. Review file log.');
-            } catch (\Throwable $exception) {
-                
+                $this->sendDocument($document, $message);
+            } catch (Exception $exception) {
+                static::$ignoreNextExceptcion = true;
+                \Log::debug($exception->getMessage(), ['trace' => $exception->getTraceAsString()]);
+                static::$ignoreNextExceptcion = false;
+                try {
+                    if (stripos($exception->getMessage(), 'strings must be encoded in UTF-8') !== false) {
+                        $this->sendDocument($document, $messagePrefix);
+                    } else {
+                        $this->sendMessage($messagePrefix . ': There was an error sending exception report. Review file log.');
+                    }
+                } catch (\Throwable $exception) {
+        
+                }
             }
         } catch (\Throwable $exception) {
             if (!empty($filePath)) {
