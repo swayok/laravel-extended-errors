@@ -4,12 +4,10 @@ namespace LaravelExtendedErrors;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Log\ParsesLogConfiguration;
-use Illuminate\Mail\TransportManager;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
 use LaravelExtendedErrors\Handler\ExceptionPageHandler;
 use LaravelExtendedErrors\Handler\TelegramHandler;
-use LaravelExtendedErrors\Handler\WhoopsReplaceHandler;
 use LaravelExtendedErrors\MailTransport\ExtendedLogTransport;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
@@ -72,6 +70,9 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             'logging.replace_whoops' => true/false
          */
         $this->replaceWhoopsPrettyPrintHandler();
+        
+        // for Laravel 7+
+        $this->replaceMailManager();
     }
 
     /**
@@ -129,18 +130,29 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
     }
 
     protected function replaceMailLogTransport() {
-        /** @var TransportManager $swiftTransport */
-        $swiftTransport = $this->app->make('swift.transport');
-        $swiftTransport->extend('log', function ($app) {
-            /** @var Application $app */
-            return new ExtendedLogTransport($app->make(LoggerInterface::class));
-        });
+        if (!$this->app->bound('Illuminate\Mail\MailManager')) {
+            // Laravel <= 6
+            /** @var \Illuminate\Mail\TransportManager $swiftTransport */
+            $swiftTransport = $this->app->make('swift.transport');
+            $swiftTransport->extend('log', function ($app) {
+                /** @var Application $app */
+                return new ExtendedLogTransport($app->make(LoggerInterface::class));
+            });
+        }
     }
 
     protected function replaceWhoopsPrettyPrintHandler() {
         if ($this->app['config']['logging.replace_whoops']) {
             $this->app->bind(HandlerInterface::class, function () {
                 return new ExceptionPageHandler();
+            });
+        }
+    }
+    
+    protected function replaceMailManager() {
+        if ($this->app->bound('Illuminate\Mail\MailManager')) {
+            $this->app->singleton('mail.manager', function ($app) {
+                return new ExtendedMailManager($app);
             });
         }
     }
