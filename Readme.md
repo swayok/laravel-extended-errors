@@ -150,3 +150,9 @@ by HTML Renderer. This provides better understanding of what happened.
 #### Whoops exception page replacement
 To replace HTML exception pages rendered by built-in Laravel's Whoops handler with 
 exception page rendered by this package you need to add `'replace_whoops' => true,` to `config/logging.php`
+
+#### Custom user info data collector
+`ExceptionHtmlRenderer` prints minimal set of user info: primary key and class. To print more info you can
+provide your own user info collector using `ExceptionHtmlRenderer::setUserInfoCollector(\Closure)`. Closure   
+receives no arguments and must return null (not authenticated) or array. Also it is on your side how you get 
+user object. `ExceptionHtmlRenderer` by default uses `request()->user()`;

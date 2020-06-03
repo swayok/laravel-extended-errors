@@ -30,6 +30,11 @@ class ExceptionHtmlRenderer {
      * @var bool
      */
     protected $addUserInfo = true;
+    
+    /**
+     * @var null|\Closure
+     */
+    static protected $userInfoCollector;
 
     /**
      * @var array
@@ -76,11 +81,15 @@ class ExceptionHtmlRenderer {
         $this->addRequestInfo = $addRequestInfo;
         $this->addUserInfo = $addUserInfo;
     }
+    
+    static public function setUserInfoCollector(?\Closure $closure) {
+        static::$userInfoCollector = $closure;
+    }
 
     public function renderPage(): string {
         return <<<HTML
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="{$this->charset}" />
         <meta name="robots" content="noindex,nofollow" />
@@ -95,7 +104,7 @@ HTML;
     }
 
     public function renderPageBody(bool $allowJavaScript = false): string {
-        // todo: implement next/prev log navigation using js if alowed
+        // todo: implement next/prev log navigation using js if allowed
         return <<<HTML
             <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
             padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
@@ -159,17 +168,17 @@ HTML;
 
 HTML;
         try {
-            $user = request()->user();
-            if (!$user) {
+            $userInfo = $this->getUserInfo();
+            if (!$userInfo) {
                 $content .= '<b>Not authenticated</b>';
             } else {
-                $data = Utils::getUserInfo($user);
-                foreach ($data as $key => $value) {
+                foreach ($userInfo as $key => &$value) {
                     if (!is_array($value)) {
-                        $data[$key] = htmlentities($value);
+                        $value = htmlentities($value);
                     }
                 }
-                $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                unset($value);
+                $json = json_encode($userInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                 padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
@@ -181,6 +190,19 @@ HTML;
         }
         
         return $content . '</div></div>';
+    }
+    
+    protected function getUserInfo(): ?array {
+        if (isset(static::$userInfoCollector)) {
+            return call_user_func(static::$userInfoCollector);
+        } else {
+            $user = request()->user();
+            if (!$user) {
+                return null;
+            } else {
+                return Utils::getUserInfo($user);
+            }
+        }
     }
 
     public function renderExceptionContent(): string {
@@ -250,7 +272,6 @@ HTML;
     }
 
     protected function formatPath(string $path, int $line): string {
-        /** @noinspection CallableParameterUseCaseInTypeContextInspection */
         $path = preg_replace(
             [
                 '%(' . preg_quote(app_path(), '%') . '.*)%i',
