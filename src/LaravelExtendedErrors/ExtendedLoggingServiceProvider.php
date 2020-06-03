@@ -17,7 +17,17 @@ use Whoops\Handler\HandlerInterface;
 class ExtendedLoggingServiceProvider extends ServiceProvider {
 
     use ParsesLogConfiguration;
-
+    
+    /**
+     * @var int
+     */
+    protected $laravelVersion;
+    
+    public function __construct($app) {
+        parent::__construct($app);
+        $this->laravelVersion = (float)$app->version();
+    }
+    
     /**
      * Get fallback log channel name.
      *
@@ -70,9 +80,10 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             'logging.replace_whoops' => true/false
          */
         $this->replaceWhoopsPrettyPrintHandler();
-        
+    
         // for Laravel 7+
         $this->replaceMailManager();
+        
     }
 
     /**
@@ -130,7 +141,7 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
     }
 
     protected function replaceMailLogTransport() {
-        if (!$this->app->bound('Illuminate\Mail\MailManager')) {
+        if ($this->laravelVersion < 7.0) {
             // Laravel <= 6
             /** @var \Illuminate\Mail\TransportManager $swiftTransport */
             $swiftTransport = $this->app->make('swift.transport');
@@ -150,8 +161,8 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
     }
     
     protected function replaceMailManager() {
-        if ($this->app->bound('Illuminate\Mail\MailManager')) {
-            $this->app->singleton('mail.manager', function ($app) {
+        if ($this->laravelVersion >= 7.0) {
+            $this->app->extend('mail.manager', function ($service, $app) {
                 return new ExtendedMailManager($app);
             });
         }
