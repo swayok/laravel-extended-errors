@@ -149,7 +149,6 @@ HTML;
         if (!$this->addUserInfo) {
             return '';
         }
-        $user = request()->user();
         $content = <<<HTML
             <div class="user-info">
                 <hr>
@@ -159,21 +158,28 @@ HTML;
                 <div style="font-size: 14px !important">
 
 HTML;
-        if (!$user) {
-            $content .= '<b>Not authenticated</b>';
-        } else {
-            $data = Utils::getUserInfo($user);
-            foreach ($data as $key => $value) {
-                if (!is_array($value)) {
-                    $data[$key] = htmlentities($value);
+        try {
+            $user = request()->user();
+            if (!$user) {
+                $content .= '<b>Not authenticated</b>';
+            } else {
+                $data = Utils::getUserInfo($user);
+                foreach ($data as $key => $value) {
+                    if (!is_array($value)) {
+                        $data[$key] = htmlentities($value);
+                    }
                 }
-            }
-            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $content .= <<<HTML
+                $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                 padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
 HTML;
+            }
+        } catch (\Throwable $exception) {
+            $content .= '<b>Exception: ' . $exception->getMessage() . '</b>';
+            $content .= '<pre style="word-break: break-all; white-space: pre-wrap;">' . $exception->getTraceAsString() . '</pre>';
         }
+        
         return $content . '</div></div>';
     }
 
