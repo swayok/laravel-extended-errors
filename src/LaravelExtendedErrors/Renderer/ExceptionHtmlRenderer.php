@@ -4,22 +4,12 @@ namespace LaravelExtendedErrors\Renderer;
 
 use LaravelExtendedErrors\Utils;
 
-class ExceptionHtmlRenderer {
+class ExceptionHtmlRenderer extends LogHtmlRenderer {
 
     /**
      * @var \Symfony\Component\ErrorHandler\Exception\FlattenException
      */
     protected $exception;
-
-    /**
-     * @var array
-     */
-    protected $logRecord;
-
-    /**
-     * @var string
-     */
-    protected $charset;
 
     /**
      * @var bool
@@ -37,29 +27,6 @@ class ExceptionHtmlRenderer {
     static protected $userInfoCollector;
 
     /**
-     * @var array
-     */
-    protected $colors = [
-        'page_bg' => '#FFFFFF',
-        'content_bg' => '#F5F5F5',
-        'content_border' => '#FF0000',
-        'project_root' => '#888888',
-        'app_file' => '#008d00',
-        'vendor_file' => '#8d0389',
-        'error_position' => '#FF0000',
-        'trace_item_delimiter' => '#CCCCCC',
-        'class' => '#0000FF',
-        'object' => '#888888',
-        'string' => '#bb0044',
-        'null' => '#008d00',
-        'boolean' => '#008d00',
-        'resource' => '#8d0389',
-        'json_block_bg' => '#FFFFFF',
-        'json_block_border' => '#CCCCCC',
-        'muted' => '#888888',
-    ];
-
-    /**
      * ExceptionHtmlRenderer constructor.
      * @param \Throwable $exception
      * @param array $logRecord
@@ -68,6 +35,7 @@ class ExceptionHtmlRenderer {
      * @param bool $addUserInfo - true: some user data will be added to exception report (class and primary key value received for Auth::guard()->user()
      */
     public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true, bool $addUserInfo = true) {
+        parent::__construct($logRecord, $charset);
         if (
             (class_exists('\Symfony\Component\ErrorHandler\Exception\FlattenException') && $exception instanceof \Symfony\Component\ErrorHandler\Exception\FlattenException)
             || (class_exists('\Symfony\Component\Debug\Exception\FlattenException') && $exception instanceof \Symfony\Component\Debug\Exception\FlattenException)
@@ -76,8 +44,6 @@ class ExceptionHtmlRenderer {
         } else {
             $this->exception = \Symfony\Component\ErrorHandler\Exception\FlattenException::createFromThrowable($exception);
         }
-        $this->logRecord = $logRecord;
-        $this->charset = $charset ?: 'UTF-8';
         $this->addRequestInfo = $addRequestInfo;
         $this->addUserInfo = $addUserInfo;
     }
@@ -85,31 +51,21 @@ class ExceptionHtmlRenderer {
     static public function setUserInfoCollector(?\Closure $closure) {
         static::$userInfoCollector = $closure;
     }
-
-    public function renderPage(): string {
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="{$this->charset}" />
-        <meta name="robots" content="noindex,nofollow" />
-        <title>Error report: {$this->exception->getMessage()}</title>
-        {$this->getStylesheet()}
-    </head>
-    <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']};">
-        {$this->renderPageBody(false)}
-    </body>
-</html>
-HTML;
+    
+    protected function getPageTitle(): string {
+        return 'Error report: ' . $this->exception->getMessage();
     }
-
+    
     public function renderPageBody(bool $allowJavaScript = false): string {
-        // todo: implement next/prev log navigation using js if allowed
         return <<<HTML
-            <div class="html-exception-content" style="background-color: {$this->colors['content_bg']};
-            padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
-            border: 1px solid {$this->colors['content_border']}; width:100%; max-width:900px;">
+            <div
+                class="html-exception-content"
+                style="background-color: {$this->colors['content_bg']};
+                    padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
+                    border: 1px solid {$this->logLevelsColors[$this->logLevel]}; width:100%; max-width:900px;"
+            >
                 {$this->renderExceptionContent()}
+                {$this->renderContext()}
                 {$this->renderUserInfo()}
                 {$this->renderRequestInfo()}
             </div>
@@ -153,7 +109,7 @@ HTML;
 
         return $content . '</div></div>';
     }
-
+    
     protected function renderUserInfo(): string {
         if (!$this->addUserInfo) {
             return '';
@@ -249,18 +205,12 @@ HTML;
         }
 
         return <<<HTML
-            <h1>$title <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span></h1>
+            <h1 style="color: {$this->logLevelsColors[$this->logLevel]}">
+                $title
+                <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span>
+            </h1>
             $content
 HTML;
-    }
-
-    protected function getStylesheet(): string {
-        return '
-            <style>
-                html { padding: 10px }
-                img { border: 0; }
-            </style>
-        ';
     }
 
     protected function escapeHtml($str): string {

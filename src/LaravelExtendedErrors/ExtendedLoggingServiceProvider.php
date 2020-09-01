@@ -4,6 +4,7 @@ namespace LaravelExtendedErrors;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Log\ParsesLogConfiguration;
+use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
 use LaravelExtendedErrors\Handler\ExceptionPageHandler;
@@ -47,7 +48,6 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
      * @return void
      */
     public function register() {
-        /** @var ExtendedLogManager $logManager */
         $logManager = $this->replaceLogManager();
 
         /*
@@ -86,41 +86,32 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
         
     }
 
-    /**
-     * @return ExtendedLogManager
-     */
-    protected function replaceLogManager() {
+    protected function replaceLogManager(): ExtendedLogManager {
         $this->app->singleton('log', function () {
             return new ExtendedLogManager($this->app);
         });
         return $this->app['log'];
     }
 
-    /**
-     * @param ExtendedLogManager $logManager
-     */
-    protected function registerTelegramChannelDriver($logManager) {
+    protected function registerTelegramChannelDriver(ExtendedLogManager $logManager) {
         $logManager->extend('telegram', function ($app, array $config) {
             /** @var ExtendedLogManager $this */
             $handler = new TelegramHandler(
                 $this->level($config),
-                array_get($config, 'token'),
-                array_get($config, 'chat_id'),
-                array_get($config, 'bubble', false),
-                array_get($config, 'proxy')
+                Arr::get($config, 'token'),
+                Arr::get($config, 'chat_id'),
+                Arr::get($config, 'bubble', false),
+                Arr::get($config, 'proxy')
             );
             $handler->setFormatter(new EmailFormatter());
             return new Logger($this->parseChannel($config), [$handler]);
         });
     }
 
-    /**
-     * @param ExtendedLogManager $logManager
-     */
-    protected function registerEmailChannelDriver($logManager) {
+    protected function registerEmailChannelDriver(ExtendedLogManager $logManager) {
         $logManager->extend('email', function ($app, array $config) {
             /** @var ExtendedLogManager $this */
-            $senderEmail = array_get($config, 'sender');
+            $senderEmail = Arr::get($config, 'sender');
             $ip = (empty($_SERVER['SERVER_ADDR']) ? 'undefined ip' : $_SERVER['HTTP_HOST']);
             $host = (empty($_SERVER['HTTP_HOST']) ? 'unknown.host' : $_SERVER['HTTP_HOST']);
             if (empty($senderEmail)) {
@@ -129,7 +120,7 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             }
             $handler = new NativeMailerHandler(
                 $config['receiver'],
-                array_get($config, 'subject', "Log from $host ($ip)"),
+                Arr::get($config, 'subject', "Log from $host ($ip)"),
                 $senderEmail,
                 $this->level($config)
             );

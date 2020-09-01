@@ -2,6 +2,7 @@
 
 namespace LaravelExtendedErrors\Handler;
 
+use Illuminate\Support\Arr;
 use LaravelExtendedErrors\Utils\TelegramBotApi;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Logger;
@@ -58,7 +59,7 @@ class TelegramHandler extends AbstractProcessingHandler {
      * @param array|null $proxy
      */
     protected function initBotApi(string $token, ?array $proxy = null) {
-        if (empty($proxy) || array_get($proxy, 'type') !== 'nginx') {
+        if (empty($proxy) || Arr::get($proxy, 'type') !== 'nginx') {
             $this->botApi = new BotApi($token);
             $this->setupNormalProxy($proxy);
         } else {
@@ -78,12 +79,12 @@ class TelegramHandler extends AbstractProcessingHandler {
             } else {
                 $this->botApi->setCurlOption(CURLOPT_HTTPPROXYTUNNEL, true);
                 $this->botApi->setCurlOption(CURLOPT_PROXY, $proxyServer);
-                switch (array_get($proxy, 'type')) {
+                switch (Arr::get($proxy, 'type')) {
                     case 'socks4':
                         $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
                         break;
                     case 'socks5':
-                        $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_SOCKS4);
+                        $this->botApi->setCurlOption(CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5);
                         break;
                     case 'http':
                     default:

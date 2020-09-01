@@ -2,6 +2,7 @@
 
 namespace LaravelExtendedErrors\Renderer;
 
+use Illuminate\Support\Arr;
 use Monolog\Logger;
 
 class LogHtmlRenderer {
@@ -27,11 +28,11 @@ class LogHtmlRenderer {
         Logger::DEBUG     => '#cccccc',
         Logger::INFO      => '#468847',
         Logger::NOTICE    => '#3a87ad',
-        Logger::WARNING   => '#c09853',
-        Logger::ERROR     => '#f0ad4e',
-        Logger::CRITICAL  => '#FF7708',
-        Logger::ALERT     => '#C12A19',
-        Logger::EMERGENCY => '#000000',
+        Logger::WARNING   => '#E78B00',
+        Logger::ERROR     => '#c12a19',
+        Logger::CRITICAL  => '#DC3961',
+        Logger::ALERT     => '#D7046F',
+        Logger::EMERGENCY => '#ff361c',
     );
 
     /**
@@ -75,17 +76,17 @@ class LogHtmlRenderer {
     public function __construct(array $logRecord, string $charset = null) {
         $this->logRecord = $logRecord;
         $this->charset = $charset ?: 'UTF-8';
-        $this->logLevel = array_get($logRecord, 'level', Logger::ERROR);
+        $this->logLevel = Arr::get($logRecord, 'level', Logger::ERROR);
     }
 
     public function renderPage(): string {
         return <<<HTML
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="{$this->charset}" />
         <meta name="robots" content="noindex,nofollow" />
-        <title>{$this->logLevelsNames[$this->logLevel]}: {$this->getMessage()}</title>
+        <title>{$this->getPageTitle()}</title>
         {$this->getStylesheet()}
     </head>
     <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']};">
@@ -94,31 +95,37 @@ class LogHtmlRenderer {
 </html>
 HTML;
     }
+    
+    protected function getPageTitle(): string {
+        return $this->logLevelsNames[$this->logLevel] . ': ' . $this->getMessage();
+    }
 
     public function renderPageBody(bool $allowJavaScript = false): string {
-        // todo: implement next/prev log navigation using js if alowed
         $date = ' @ ' . date('Y-m-d H:i:s') . ' (' . date_default_timezone_get() . ')';
         return <<<HTML
-        <div class="html-log-content" style="background-color: {$this->colors['content_bg']};
-        padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
-        border: 1px solid {$this->logLevelsColors[$this->logLevel]}; width:100%; max-width:900px;">
+        <div
+            class="html-log-content"
+            style="background-color: {$this->colors['content_bg']};
+                padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
+                border: 1px solid {$this->logLevelsColors[$this->logLevel]}; width:100%; max-width:900px;"
+        >
             <h1 style="color: {$this->logLevelsColors[$this->logLevel]}">
                 {$this->logLevelsNames[$this->logLevel]}
-                <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span>
+                <span style="font-size: 13px; color: {$this->colors['muted']}">{$date}</span>
             </h1>
             <h2>{$this->getMessage()}</h2>
             <h3>Channel: {$this->getChannel()}</h3>
-{$this->renderContext()}
+            {$this->renderContext()}
         </div>
 HTML;
     }
 
     protected function getMessage(): string {
-        return array_get($this->logRecord, 'message', '*Empty message*');
+        return Arr::get($this->logRecord, 'message', '*Empty message*');
     }
 
     protected function getChannel(): string {
-        return array_get($this->logRecord, 'channel', '*Channel not provided*');
+        return Arr::get($this->logRecord, 'channel', '*Channel not provided*');
     }
 
     protected function getStylesheet(): string {
@@ -131,7 +138,7 @@ HTML;
     }
 
     protected function renderContext(): string {
-        $context = array_get($this->logRecord, 'context');
+        $context = Arr::get($this->logRecord, 'context');
         if (empty($context)) {
             return '';
         }
