@@ -12,7 +12,7 @@ class LogEmailRenderer extends LogHtmlRenderer {
             return '';
         }
         $subject = Arr::get($context, 'subject', '');
-        $headers = Arr::get($context, 'headers', '');
+        $headers = htmlentities(Arr::get($context, 'headers', ''));
         $content = <<<HTML
             <div class="request-info">
                 <hr>
