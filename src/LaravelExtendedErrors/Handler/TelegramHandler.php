@@ -24,7 +24,7 @@ class TelegramHandler extends AbstractProcessingHandler {
 
     protected $levels = [
         Logger::DEBUG => 'Debug',
-        Logger::INFO => '‍Info',
+        Logger::INFO => 'Info',
         Logger::NOTICE => 'Notice',
         Logger::WARNING => 'Warning',
         Logger::ERROR => 'Error',
