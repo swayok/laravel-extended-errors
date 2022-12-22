@@ -17,7 +17,7 @@ class ExtendedLogManager extends LogManager {
     public function exception(\Throwable $exception, array $context = []) {
         $this->critical($exception, $context);
     }
-    
+
     /**
      * Critical conditions.
      *
@@ -28,14 +28,14 @@ class ExtendedLogManager extends LogManager {
      *
      * @return void
      */
-    public function critical($message, array $context = []) {
+    public function critical($message, array $context = []): void {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
         }
         parent::critical($message, $context);
     }
-    
+
     /**
      * Runtime errors that do not require immediate action but should typically
      * be logged and monitored.
@@ -45,14 +45,14 @@ class ExtendedLogManager extends LogManager {
      *
      * @return void
      */
-    public function error($message, array $context = []) {
+    public function error($message, array $context = []): void {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
         }
         parent::error($message, $context);
     }
-    
+
     /**
      * Action must be taken immediately.
      *
@@ -64,14 +64,14 @@ class ExtendedLogManager extends LogManager {
      *
      * @return void
      */
-    public function alert($message, array $context = []) {
+    public function alert($message, array $context = []): void {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
         }
         parent::alert($message, $context);
     }
-    
+
     /**
      * System is unusable.
      *
@@ -80,12 +80,12 @@ class ExtendedLogManager extends LogManager {
      *
      * @return void
      */
-    public function emergency($message, array $context = []) {
+    public function emergency($message, array $context = []): void {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
         }
         parent::emergency($message, $context);
     }
-    
+
 }
