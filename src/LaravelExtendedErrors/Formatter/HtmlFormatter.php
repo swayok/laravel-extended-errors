@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LaravelExtendedErrors\Formatter;
 
+use Illuminate\Log\Logger;
+use LaravelExtendedErrors\ExtendedLogManager;
 use LaravelExtendedErrors\Renderer\ExceptionHtmlRenderer;
 use LaravelExtendedErrors\Renderer\LogEmailRenderer;
 use LaravelExtendedErrors\Renderer\LogHtmlRenderer;
@@ -18,8 +20,12 @@ class HtmlFormatter extends MonologHtmlFormatter
     /**
      * Customize logger to use this formatter
      */
-    public function __invoke(LoggerInterface $logger)
+    public function __invoke($logger)
     {
+        if ($logger instanceof Logger) {
+            // Get Monolog logger
+            $logger = $logger->getLogger();
+        }
         if (method_exists($logger, 'getHandlers')) {
             foreach ($logger->getHandlers() as $handler) {
                 if (method_exists($handler, 'setFormatter')) {
@@ -34,11 +40,10 @@ class HtmlFormatter extends MonologHtmlFormatter
         $hasContext = isset($record->context) && is_array($record->context);
         if (
             $hasContext
-            && isset($record->context['exception'])
-            && $record->context['exception'] instanceof \Throwable
+            && isset($record->context[ExtendedLogManager::CONTEXT_EXCEPTION_KEY])
+            && $record->context[ExtendedLogManager::CONTEXT_EXCEPTION_KEY] instanceof \Throwable
         ) {
-            $exception = $record->context['exception'];
-            unset($record->context['exception']);
+            $exception = $record->context[ExtendedLogManager::CONTEXT_EXCEPTION_KEY];
             $renderer = new ExceptionHtmlRenderer($exception, $record);
         } elseif (
             isset($record->context['email_message']['headers'], $record->context['email_message']['body'])

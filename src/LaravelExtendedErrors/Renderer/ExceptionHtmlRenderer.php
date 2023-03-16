@@ -91,7 +91,7 @@ HTML;
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
-                    $data[$key] = htmlentities($value);
+                    $data[$key] = htmlentities((string)$value);
                 }
             }
             /** @noinspection JsonEncodingApiUsageInspection */
@@ -126,7 +126,7 @@ HTML;
             } else {
                 foreach ($userInfo as &$value) {
                     if (!is_array($value)) {
-                        $value = htmlentities($value);
+                        $value = htmlentities((string)$value);
                     }
                 }
                 unset($value);

@@ -23,17 +23,10 @@ class TelegramHandler extends AbstractProcessingHandler
 
     static protected bool $ignoreNextException = false;
 
-    /**
-     * @param int|string|Level $level
-     * @param string|null      $token
-     * @param int|null         $chatId
-     * @param bool             $bubble
-     * @param array|null       $proxy
-     */
     public function __construct(
         int|string|Level $level,
         ?string $token = null,
-        protected ?int $chatId = null,
+        protected int|string|null $chatId = null,
         bool $bubble = false,
         ?array $proxy = null
     ) {

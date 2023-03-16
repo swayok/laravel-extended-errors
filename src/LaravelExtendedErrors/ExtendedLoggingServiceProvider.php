@@ -39,9 +39,6 @@ class ExtendedLoggingServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->register(HtmlFormatter::class);
-        $this->app->register(EmailFormatter::class);
-
         $logManager = $this->replaceLogManager();
 
         /*

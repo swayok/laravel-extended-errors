@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LaravelExtendedErrors\Renderer;
 
 use Illuminate\Support\Arr;
+use LaravelExtendedErrors\ExtendedLogManager;
 use Monolog\Level;
 use Monolog\LogRecord;
 
@@ -105,7 +106,7 @@ HTML;
 
     protected function renderContext(): string
     {
-        $context = Arr::get($this->logRecord, 'context');
+        $context = $this->getContextForRenderer();
         if (empty($context)) {
             return '';
         }
@@ -117,14 +118,14 @@ HTML;
                 </h2>
                 <div style="font-size: 14px !important">
 HTML;
-        foreach ((array)$context as $label => $data) {
+        foreach ($context as $label => $data) {
             $content .= '<h2 style="margin: 20px 0 20px 0; font-weight: bold; font-size: 18px;">' . $label . '</h2>';
             if (!is_array($data)) {
                 $data = [$data];
             }
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
-                    $data[$key] = htmlentities($value);
+                    $data[$key] = htmlentities((string)$value);
                 }
             }
             /** @noinspection JsonEncodingApiUsageInspection */
@@ -135,6 +136,13 @@ HTML;
 EOF;
         }
         return $content . "\n               </div>\n            </div>";
+    }
+
+    protected function getContextForRenderer(): array
+    {
+        $context = $this->logRecord->context;
+        unset($context[ExtendedLogManager::CONTEXT_EXCEPTION_KEY]);
+        return $context;
     }
 
     protected function getLogLevelTitle(): string
