@@ -20,14 +20,21 @@ Add require to `composer.json` and run `composer update`
 
 [Proceed using step 2 in branch laravel_up_to_5.5](https://github.com/swayok/laravel-extended-errors/blob/laravel_up_to_5.5/Readme.md)
 
-### Laravel 5.6+
+### Laravel 5.6+ to Laravel 9
 
 Add require to `composer.json` and run `composer update`
 
     "require": {
-        "swayok/laravel-extended-errors": "master@dev",
+        "swayok/laravel-extended-errors": ":6.0",
     }
-    
+
+### Laravel 10+
+
+Add require to `composer.json` and run `composer update`
+
+    "require": {
+        "swayok/laravel-extended-errors": ":7.0",
+    }
 
 ## Configuration
 
@@ -87,7 +94,7 @@ Rendered logs and exceptions are sent as documents to provided `chat_id`
 
 Proxy uses Basic Auth method to send user and password. 
 Other auth methods are not supported right now. 
-Make an issue if you need some (make sure CURL suppots it).
+Make an issue if you need some (make sure CURL supports it).
 
 **Nginx vhost config to proxy requests to api.telegram.org**
 
@@ -103,7 +110,7 @@ Make an issue if you need some (make sure CURL suppots it).
         }
     }
 
-#### Email channel
+#### Email channel (probably won't work with Laravel 10+)
 
     'email' => [
         'driver' => 'email',
@@ -114,12 +121,12 @@ Make an issue if you need some (make sure CURL suppots it).
         'bubble' => false',
     ],
 
-**Warning**: there is no limit for exceptions and you may eventually get 
+**Warning**: there is no limit for exceptions, and you may eventually get 
 thousands of errors at once if you use this channels in high loaded project.
 
 #### Sentry
 Actually there is no channel driver for Sentry but here is quick tutorial
-on how to add add exceptions reporting to Sentry via Handler.php:
+on how to add exceptions reporting to Sentry via Handler.php:
 
 Require sentry packages:
 
@@ -154,5 +161,5 @@ exception page rendered by this package you need to add `'replace_whoops' => tru
 #### Custom user info data collector
 `ExceptionHtmlRenderer` prints minimal set of user info: primary key and class. To print more info you can
 provide your own user info collector using `ExceptionHtmlRenderer::setUserInfoCollector(\Closure)`. Closure   
-receives no arguments and must return null (not authenticated) or array. Also it is on your side how you get 
+receives no arguments and must return null (not authenticated) or array. Also, it is on your side how you get 
 user object. `ExceptionHtmlRenderer` by default uses `request()->user()`;

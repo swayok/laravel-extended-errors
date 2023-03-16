@@ -1,53 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors;
 
-use Illuminate\Foundation\Application;
 use Illuminate\Log\ParsesLogConfiguration;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
+use LaravelExtendedErrors\Formatter\HtmlFormatter;
 use LaravelExtendedErrors\Handler\ExceptionPageHandler;
 use LaravelExtendedErrors\Handler\TelegramHandler;
-use LaravelExtendedErrors\MailTransport\ExtendedLogTransport;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
-use Psr\Log\LoggerInterface;
-use Whoops\Handler\HandlerInterface;
 
-class ExtendedLoggingServiceProvider extends ServiceProvider {
-
+class ExtendedLoggingServiceProvider extends ServiceProvider
+{
     use ParsesLogConfiguration;
-    
-    /**
-     * @var int
-     */
-    protected $laravelVersion;
-    
-    public function __construct($app) {
+
+    protected float $laravelVersion;
+
+    public function __construct($app)
+    {
         parent::__construct($app);
         $this->laravelVersion = (float)$app->version();
     }
-    
+
     /**
      * Get fallback log channel name.
-     *
-     * @return string
      */
-    protected function getFallbackChannelName() {
+    protected function getFallbackChannelName(): string
+    {
         return 'production';
-    }
-
-    public function boot() {
-        $this->replaceMailLogTransport();
     }
 
     /**
      * Register the service provider.
-     *
-     * @return void
      */
-    public function register() {
+    public function register(): void
+    {
+        $this->app->register(HtmlFormatter::class);
+        $this->app->register(EmailFormatter::class);
+
         $logManager = $this->replaceLogManager();
 
         /*
@@ -80,20 +74,18 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             'logging.replace_whoops' => true/false
          */
         $this->replaceWhoopsPrettyPrintHandler();
-    
-        // for Laravel 7+
-        $this->replaceMailManager();
-        
     }
 
-    protected function replaceLogManager(): ExtendedLogManager {
+    protected function replaceLogManager(): ExtendedLogManager
+    {
         $this->app->singleton('log', function () {
             return new ExtendedLogManager($this->app);
         });
         return $this->app['log'];
     }
 
-    protected function registerTelegramChannelDriver(ExtendedLogManager $logManager) {
+    protected function registerTelegramChannelDriver(ExtendedLogManager $logManager): void
+    {
         $logManager->extend('telegram', function ($app, array $config) {
             /** @var ExtendedLogManager $this */
             $handler = new TelegramHandler(
@@ -108,7 +100,8 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
         });
     }
 
-    protected function registerEmailChannelDriver(ExtendedLogManager $logManager) {
+    protected function registerEmailChannelDriver(ExtendedLogManager $logManager): void
+    {
         $logManager->extend('email', function ($app, array $config) {
             /** @var ExtendedLogManager $this */
             $senderEmail = Arr::get($config, 'sender');
@@ -131,32 +124,13 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
         });
     }
 
-    protected function replaceMailLogTransport() {
-        if ($this->laravelVersion < 7.0) {
-            // Laravel <= 6
-            /** @var \Illuminate\Mail\TransportManager $swiftTransport */
-            $swiftTransport = $this->app->make('swift.transport');
-            $swiftTransport->extend('log', function ($app) {
-                /** @var Application $app */
-                return new ExtendedLogTransport($app->make(LoggerInterface::class));
-            });
-        }
-    }
-
-    protected function replaceWhoopsPrettyPrintHandler() {
+    protected function replaceWhoopsPrettyPrintHandler(): void
+    {
         if ($this->app['config']['logging.replace_whoops']) {
-            $this->app->bind(HandlerInterface::class, function () {
+            /** @noinspection ClassConstantCanBeUsedInspection */
+            $this->app->bind('\Whoops\Handler\PrettyPageHandler', function () {
                 return new ExceptionPageHandler();
             });
         }
     }
-    
-    protected function replaceMailManager() {
-        if ($this->laravelVersion >= 7.0) {
-            $this->app->extend('mail.manager', function ($service, $app) {
-                return new ExtendedMailManager($app);
-            });
-        }
-    }
-
 }

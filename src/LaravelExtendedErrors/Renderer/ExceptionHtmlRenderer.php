@@ -1,68 +1,61 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors\Renderer;
 
+use Illuminate\Support\Facades\Request;
 use LaravelExtendedErrors\Utils;
+use Monolog\LogRecord;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
-class ExceptionHtmlRenderer extends LogHtmlRenderer {
+class ExceptionHtmlRenderer extends LogHtmlRenderer
+{
+    protected FlattenException $exception;
 
-    /**
-     * @var \Symfony\Component\ErrorHandler\Exception\FlattenException
-     */
-    protected $exception;
-
-    /**
-     * @var bool
-     */
-    protected $addRequestInfo = true;
-
-    /**
-     * @var bool
-     */
-    protected $addUserInfo = true;
-    
-    /**
-     * @var null|\Closure
-     */
-    static protected $userInfoCollector;
+    static protected ?\Closure $userInfoCollector = null;
 
     /**
      * ExceptionHtmlRenderer constructor.
-     * @param \Throwable $exception
-     * @param array $logRecord
+     * @param \Throwable  $exception
+     * @param LogRecord   $logRecord
      * @param string|null $charset
-     * @param bool $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
-     * @param bool $addUserInfo - true: some user data will be added to exception report (class and primary key value received for Auth::guard()->user()
+     * @param bool        $addRequestInfo - true: GET, POST, SERVER, COOKIE data will be added to exception report
+     * @param bool        $addUserInfo - true: some user data will be added to exception report (class and primary key value received for Auth::guard()->user()
      */
-    public function __construct(\Throwable $exception, array $logRecord, string $charset = null, bool $addRequestInfo = true, bool $addUserInfo = true) {
+    public function __construct(
+        \Throwable $exception,
+        LogRecord $logRecord,
+        ?string $charset = null,
+        protected bool $addRequestInfo = true,
+        protected bool $addUserInfo = true
+    ) {
         parent::__construct($logRecord, $charset);
-        if (
-            (class_exists('\Symfony\Component\ErrorHandler\Exception\FlattenException') && $exception instanceof \Symfony\Component\ErrorHandler\Exception\FlattenException)
-            || (class_exists('\Symfony\Component\Debug\Exception\FlattenException') && $exception instanceof \Symfony\Component\Debug\Exception\FlattenException)
-        ) {
+        if ($exception instanceof FlattenException) {
             $this->exception = $exception;
         } else {
-            $this->exception = \Symfony\Component\ErrorHandler\Exception\FlattenException::createFromThrowable($exception);
+            $this->exception = FlattenException::createFromThrowable($exception);
         }
-        $this->addRequestInfo = $addRequestInfo;
-        $this->addUserInfo = $addUserInfo;
     }
-    
-    static public function setUserInfoCollector(?\Closure $closure) {
+
+    public static function setUserInfoCollector(?\Closure $closure): void
+    {
         static::$userInfoCollector = $closure;
     }
-    
-    protected function getPageTitle(): string {
+
+    protected function getPageTitle(): string
+    {
         return 'Error report: ' . $this->exception->getMessage();
     }
-    
-    public function renderPageBody(bool $allowJavaScript = false): string {
+
+    public function renderPageBody(): string
+    {
         return <<<HTML
             <div
                 class="html-exception-content"
                 style="background-color: {$this->colors['content_bg']};
                     padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
-                    border: 1px solid {$this->logLevelsColors[$this->logLevel]}; width:100%; max-width:900px;"
+                    border: 1px solid {$this->getLogLevelColor()}; width:100%; max-width:900px;"
             >
                 {$this->renderExceptionContent()}
                 {$this->renderContext()}
@@ -72,7 +65,8 @@ class ExceptionHtmlRenderer extends LogHtmlRenderer {
 HTML;
     }
 
-    protected function renderRequestInfo(): string {
+    protected function renderRequestInfo(): string
+    {
         if (!$this->addRequestInfo || empty($_SERVER['REQUEST_METHOD'])) {
             return '';
         }
@@ -100,7 +94,8 @@ HTML;
                     $data[$key] = htmlentities($value);
                 }
             }
-            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            /** @noinspection JsonEncodingApiUsageInspection */
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                 padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
@@ -109,8 +104,9 @@ HTML;
 
         return $content . '</div></div>';
     }
-    
-    protected function renderUserInfo(): string {
+
+    protected function renderUserInfo(): string
+    {
         if (!$this->addUserInfo) {
             return '';
         }
@@ -128,12 +124,13 @@ HTML;
             if (!$userInfo) {
                 $content .= '<b>Not authenticated</b>';
             } else {
-                foreach ($userInfo as $key => &$value) {
+                foreach ($userInfo as &$value) {
                     if (!is_array($value)) {
                         $value = htmlentities($value);
                     }
                 }
                 unset($value);
+                /** @noinspection JsonEncodingApiUsageInspection */
                 $json = json_encode($userInfo, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 $content .= <<<HTML
                 <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
@@ -144,29 +141,31 @@ HTML;
             $content .= '<b>Exception: ' . $exception->getMessage() . '</b>';
             $content .= '<pre style="word-break: break-all; white-space: pre-wrap;">' . $exception->getTraceAsString() . '</pre>';
         }
-        
+
         return $content . '</div></div>';
     }
-    
-    protected function getUserInfo(): ?array {
+
+    protected function getUserInfo(): ?array
+    {
         if (isset(static::$userInfoCollector)) {
             return call_user_func(static::$userInfoCollector);
-        } else {
-            $user = request()->user();
-            if (!$user) {
-                return null;
-            } else {
-                return Utils::getUserInfo($user);
-            }
         }
+
+        $user = Request::user();
+        if (!$user) {
+            return null;
+        }
+
+        return Utils::getUserInfo($user);
     }
 
-    public function renderExceptionContent(): string {
+    public function renderExceptionContent(): string
+    {
         $content = '';
         $title = 'Exception Report';
         $date = ' @ ' . date('Y-m-d H:i:s') . ' (' . date_default_timezone_get() . ')';
         try {
-            foreach ($this->exception->toArray() as $position => $e) {
+            foreach ($this->exception->toArray() as $e) {
                 $content .= sprintf(
                     '<h2>%s</h2><h3>Type: %s</h3>',
                     nl2br($this->escapeHtml($e['message'])),
@@ -176,7 +175,7 @@ HTML;
                 foreach ($e['trace'] as $trace) {
                     $content .= '  <li style="border-bottom: 1px solid ' . $this->colors['trace_item_delimiter'] . '; padding: 5px 0 9px 0; margin: 0;">';
                     if (isset($trace['file'], $trace['line'])) {
-                        $content .= '    <p>' . $this->formatPath($trace['file'], (int)$trace['line']) .'</p>';
+                        $content .= '    <p>' . $this->formatPath($trace['file'], (int)$trace['line']) . '</p>';
                     }
                     if ($trace['function']) {
                         $content .= sprintf(
@@ -205,7 +204,7 @@ HTML;
         }
 
         return <<<HTML
-            <h1 style="color: {$this->logLevelsColors[$this->logLevel]}">
+            <h1 style="color: {$this->getLogLevelColor()}">
                 $title
                 <span style="font-size: 13px; color: {$this->colors['muted']}">$date</span>
             </h1>
@@ -213,15 +212,18 @@ HTML;
 HTML;
     }
 
-    protected function escapeHtml($str): string {
+    protected function escapeHtml($str): string
+    {
         return htmlspecialchars($str, ENT_QUOTES | (PHP_VERSION_ID >= 50400 ? ENT_SUBSTITUTE : 0), $this->charset);
     }
 
-    protected function formatClass($class): string {
+    protected function formatClass($class): string
+    {
         return sprintf('<span style="color: ' . $this->colors['class'] . '">%s</span>', $class);
     }
 
-    protected function formatPath(string $path, int $line): string {
+    protected function formatPath(string $path, int $line): string
+    {
         $path = preg_replace(
             [
                 '%(' . preg_quote(app_path(), '%') . '.*)%i',
@@ -241,8 +243,9 @@ HTML;
     /**
      * Formats an array as a string.
      */
-    protected function formatArgs(array $args): string {
-        $result = array();
+    protected function formatArgs(array $args): string
+    {
+        $result = [];
         foreach ($args as $key => $item) {
             if ('object' === $item[0]) {
                 $formattedValue = sprintf('<span style="border-bottom: 1px dotted ' . $this->colors['object'] . ';">%s</span>', $this->formatClass($item[1]));

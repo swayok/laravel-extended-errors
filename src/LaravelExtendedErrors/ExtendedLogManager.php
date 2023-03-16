@@ -1,20 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors;
 
 use Illuminate\Log\LogManager;
 
-class ExtendedLogManager extends LogManager {
+class ExtendedLogManager extends LogManager
+{
 
     /**
      * Exceptions (logged using critical log level)
      *
      * @param \Throwable $exception
-     * @param array $context
+     * @param array      $context
      *
      * @return void
      */
-    public function exception(\Throwable $exception, array $context = []) {
+    public function exception(\Throwable $exception, array $context = []): void
+    {
         $this->critical($exception, $context);
     }
 
@@ -23,12 +27,13 @@ class ExtendedLogManager extends LogManager {
      *
      * Example: Application component unavailable, unexpected exception.
      *
-     * @param  string  $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return void
      */
-    public function critical($message, array $context = []): void {
+    public function critical($message, array $context = []): void
+    {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
@@ -40,12 +45,13 @@ class ExtendedLogManager extends LogManager {
      * Runtime errors that do not require immediate action but should typically
      * be logged and monitored.
      *
-     * @param  string  $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return void
      */
-    public function error($message, array $context = []): void {
+    public function error($message, array $context = []): void
+    {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
@@ -59,12 +65,13 @@ class ExtendedLogManager extends LogManager {
      * Example: Entire website down, database unavailable, etc. This should
      * trigger the SMS alerts and wake you up.
      *
-     * @param  string  $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return void
      */
-    public function alert($message, array $context = []): void {
+    public function alert($message, array $context = []): void
+    {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();
@@ -75,12 +82,13 @@ class ExtendedLogManager extends LogManager {
     /**
      * System is unusable.
      *
-     * @param  string  $message
-     * @param  array  $context
+     * @param string $message
+     * @param array  $context
      *
      * @return void
      */
-    public function emergency($message, array $context = []): void {
+    public function emergency($message, array $context = []): void
+    {
         if ($message instanceof \Throwable) {
             $context['exception'] = $message;
             $message = $message->getMessage();

@@ -1,21 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors\Handler;
 
 use LaravelExtendedErrors\Renderer\ExceptionHtmlRenderer;
+use Monolog\Level;
+use Monolog\LogRecord;
 use Whoops\Handler\Handler;
+use Whoops\Handler\PrettyPageHandler;
 
-class ExceptionPageHandler extends Handler {
-
-    public function handle() {
+class ExceptionPageHandler extends PrettyPageHandler
+{
+    public function handle(): int
+    {
         $exception = $this->getException();
-        $renderer = new ExceptionHtmlRenderer($exception, []);
+        $record = new LogRecord(
+            new \DateTimeImmutable(),
+            'Exception',
+            Level::Critical,
+            $exception->getMessage()
+        );
+        $renderer = new ExceptionHtmlRenderer($exception, $record);
         echo $renderer->renderPage();
 
         return Handler::QUIT;
-    }
-
-    public function contentType() {
-        return 'text/html';
     }
 }

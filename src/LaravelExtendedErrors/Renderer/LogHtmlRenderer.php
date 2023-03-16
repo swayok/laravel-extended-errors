@@ -1,44 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors\Renderer;
 
 use Illuminate\Support\Arr;
-use Monolog\Logger;
+use Monolog\Level;
+use Monolog\LogRecord;
 
-class LogHtmlRenderer {
-
-    /**
-     * @var array
-     */
-    protected $logLevelsNames = array(
-        Logger::DEBUG     => 'Debug Log',
-        Logger::INFO      => 'Information',
-        Logger::NOTICE    => 'Notice',
-        Logger::WARNING   => 'Warning Log',
-        Logger::ERROR     => 'Error Log',
-        Logger::CRITICAL  => 'Critical Error Log',
-        Logger::ALERT     => 'Alert Log',
-        Logger::EMERGENCY => 'Emergency Log',
-    );
-
-    /**
-     * @var array
-     */
-    protected $logLevelsColors = array(
-        Logger::DEBUG     => '#cccccc',
-        Logger::INFO      => '#468847',
-        Logger::NOTICE    => '#3a87ad',
-        Logger::WARNING   => '#E78B00',
-        Logger::ERROR     => '#c12a19',
-        Logger::CRITICAL  => '#DC3961',
-        Logger::ALERT     => '#D7046F',
-        Logger::EMERGENCY => '#ff361c',
-    );
-
-    /**
-     * @var array
-     */
-    protected $colors = [
+class LogHtmlRenderer
+{
+    protected array $colors = [
         'page_bg' => '#FFFFFF',
         'content_bg' => '#F5F5F5',
         'content_border' => '#CCCCCC',
@@ -58,28 +30,17 @@ class LogHtmlRenderer {
         'muted' => '#888888',
     ];
 
-    /**
-     * @var array
-     */
-    protected $logRecord;
+    protected string $charset;
 
-    /**
-     * @var string
-     */
-    protected $charset;
-
-    /**
-     * @var int
-     */
-    protected $logLevel;
-
-    public function __construct(array $logRecord, string $charset = null) {
-        $this->logRecord = $logRecord;
+    public function __construct(
+        protected LogRecord $logRecord,
+        ?string $charset = null
+    ) {
         $this->charset = $charset ?: 'UTF-8';
-        $this->logLevel = Arr::get($logRecord, 'level', Logger::ERROR);
     }
 
-    public function renderPage(): string {
+    public function renderPage(): string
+    {
         return <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -90,27 +51,29 @@ class LogHtmlRenderer {
         {$this->getStylesheet()}
     </head>
     <body style="padding: 20px 30px 20px 30px; margin: 0; background-color: {$this->colors['page_bg']};">
-        {$this->renderPageBody(false)}
+        {$this->renderPageBody()}
     </body>
 </html>
 HTML;
     }
-    
-    protected function getPageTitle(): string {
-        return $this->logLevelsNames[$this->logLevel] . ': ' . $this->getMessage();
+
+    protected function getPageTitle(): string
+    {
+        return $this->getLogLevelTitle() . ': ' . $this->getMessage();
     }
 
-    public function renderPageBody(bool $allowJavaScript = false): string {
+    public function renderPageBody(): string
+    {
         $date = ' @ ' . date('Y-m-d H:i:s') . ' (' . date_default_timezone_get() . ')';
         return <<<HTML
         <div
             class="html-log-content"
             style="background-color: {$this->colors['content_bg']};
                 padding: 20px 30px 30px 30px; font: 11px Verdana, Arial, sans-serif; margin: 0 auto 40px auto;
-                border: 1px solid {$this->logLevelsColors[$this->logLevel]}; width:100%; max-width:900px;"
+                border: 1px solid {$this->getLogLevelColor()}; width:100%; max-width:900px;"
         >
-            <h1 style="color: {$this->logLevelsColors[$this->logLevel]}">
-                {$this->logLevelsNames[$this->logLevel]}
+            <h1 style="color: {$this->getLogLevelColor()}">
+                {$this->getLogLevelTitle()}
                 <span style="font-size: 13px; color: {$this->colors['muted']}">{$date}</span>
             </h1>
             <h2>{$this->getMessage()}</h2>
@@ -120,15 +83,18 @@ HTML;
 HTML;
     }
 
-    protected function getMessage(): string {
+    protected function getMessage(): string
+    {
         return Arr::get($this->logRecord, 'message', '*Empty message*');
     }
 
-    protected function getChannel(): string {
+    protected function getChannel(): string
+    {
         return Arr::get($this->logRecord, 'channel', '*Channel not provided*');
     }
 
-    protected function getStylesheet(): string {
+    protected function getStylesheet(): string
+    {
         return '
             <style>
                 html { padding: 10px }
@@ -137,7 +103,8 @@ HTML;
         ';
     }
 
-    protected function renderContext(): string {
+    protected function renderContext(): string
+    {
         $context = Arr::get($this->logRecord, 'context');
         if (empty($context)) {
             return '';
@@ -160,7 +127,8 @@ HTML;
                     $data[$key] = htmlentities($value);
                 }
             }
-            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            /** @noinspection JsonEncodingApiUsageInspection */
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             $content .= <<<EOF
                     <pre style="border: 1px solid {$this->colors['json_block_border']}; background: {$this->colors['json_block_bg']};
                     padding: 10px; font-size: 14px !important; word-break: break-all; white-space: pre-wrap;">$json</pre>
@@ -169,4 +137,31 @@ EOF;
         return $content . "\n               </div>\n            </div>";
     }
 
+    protected function getLogLevelTitle(): string
+    {
+        return match ($this->logRecord->level) {
+            Level::Debug => 'Debug Log',
+            Level::Info => 'Information',
+            Level::Notice => 'Notice',
+            Level::Warning => 'Warning Log',
+            Level::Error => 'Error Log',
+            Level::Critical => 'Critical Error Log',
+            Level::Alert => 'Alert Log',
+            Level::Emergency => 'Emergency Log',
+        };
+    }
+
+    protected function getLogLevelColor(): string
+    {
+        return match ($this->logRecord->level) {
+            Level::Debug => '#cccccc',
+            Level::Info => '#468847',
+            Level::Notice => '#3a87ad',
+            Level::Warning => '#E78B00',
+            Level::Error => '#c12a19',
+            Level::Critical => '#DC3961',
+            Level::Alert => '#D7046F',
+            Level::Emergency => '#ff361c',
+        };
+    }
 }

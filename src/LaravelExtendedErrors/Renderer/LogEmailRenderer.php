@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors\Renderer;
 
 use Illuminate\Support\Arr;
 
-class LogEmailRenderer extends LogHtmlRenderer {
-
-    protected function renderContext(): string {
+class LogEmailRenderer extends LogHtmlRenderer
+{
+    protected function renderContext(): string
+    {
         $context = Arr::get($this->logRecord, 'context.email_message');
         if (empty($context)) {
             return '';
@@ -28,7 +31,8 @@ HTML;
         return $content . $this->showEmailHtml();
     }
 
-    protected function showEmailHtml(): string {
+    protected function showEmailHtml(): string
+    {
         return '<iframe width="100%" height="400px" sandbox="" frameborder="0" srcdoc="'
             . htmlentities(Arr::get($this->logRecord, 'context.email_message.body', ''))
             . '"></iframe>';

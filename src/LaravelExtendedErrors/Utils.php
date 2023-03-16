@@ -1,42 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Request;
 
-class Utils {
-
-    static public function getMoreInformationAboutRequest(): array {
+class Utils
+{
+    public static function getMoreInformationAboutRequest(): array
+    {
         $ret = [
-            '$_GET' => static::cleanPasswordsInArray((array)$_GET),
-            '$_POST' => static::cleanPasswordsInArray((array)$_POST),
-            '$_FILES' => static::cleanPasswordsInArray((array)$_FILES),
-            '$_COOKIE' => static::cleanPasswordsInArray(
-                (array)(class_exists('\Cookie') ? \Cookie::get() : (!empty($_COOKIE) ? $_COOKIE : []))
+            '$_GET' => static::cleanPasswordsInArray($_GET),
+            '$_POST' => static::cleanPasswordsInArray($_POST),
+            '$_FILES' => static::cleanPasswordsInArray($_FILES),
+            '$_COOKIE' => static::cleanPasswordsInArray(Cookie::get()),
+            '$_SERVER' => array_intersect_key(
+                $_SERVER, array_flip([
+                    'HTTP_ACCEPT_LANGUAGE',
+                    'HTTP_ACCEPT_ENCODING',
+                    'HTTP_REFERER',
+                    'HTTP_USER_AGENT',
+                    'HTTP_ACCEPT',
+                    'HTTP_CONNECTION',
+                    'HTTP_HOST',
+                    'REMOTE_PORT',
+                    'REMOTE_ADDR',
+                    'REQUEST_URI',
+                    'REQUEST_METHOD',
+                    'QUERY_STRING',
+                    'DOCUMENT_URI',
+                    'REQUEST_TIME_FLOAT',
+                    'REQUEST_TIME',
+                    'argv',
+                    'argc',
+                ])
             ),
-            '$_SERVER' => array_intersect_key($_SERVER, array_flip([
-                'HTTP_ACCEPT_LANGUAGE',
-                'HTTP_ACCEPT_ENCODING',
-                'HTTP_REFERER',
-                'HTTP_USER_AGENT',
-                'HTTP_ACCEPT',
-                'HTTP_CONNECTION',
-                'HTTP_HOST',
-                'REMOTE_PORT',
-                'REMOTE_ADDR',
-                'REQUEST_URI',
-                'REQUEST_METHOD',
-                'QUERY_STRING',
-                'DOCUMENT_URI',
-                'REQUEST_TIME_FLOAT',
-                'REQUEST_TIME',
-                'argv',
-                'argc',
-            ]))
         ];
         if (empty($_POST) && isset($_SERVER['REQUEST_METHOD']) && in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'DELETE'])) {
             // json-encoded or PUT/DELETE
-            $ret['$_POST'] = static::cleanPasswordsInArray((array)request()->input());
+            $ret['$_POST'] = static::cleanPasswordsInArray(Request::input());
         }
         if (!empty($ret['$_SERVER']['QUERY_STRING'])) {
             $ret['$_SERVER']['QUERY_STRING'] = static::cleanPasswordsInUrlQuery($ret['$_SERVER']['QUERY_STRING']);
@@ -44,14 +49,16 @@ class Utils {
         return $ret;
     }
 
-    static public function getUserInfo(Authenticatable $user) {
+    public static function getUserInfo(Authenticatable $user): array
+    {
         return [
             'class' => get_class($user),
-            $user->getAuthIdentifierName() => $user->getAuthIdentifier()
+            $user->getAuthIdentifierName() => $user->getAuthIdentifier(),
         ];
     }
 
-    static public function cleanPasswordsInArray(array $data): array {
+    public static function cleanPasswordsInArray(array $data): array
+    {
         foreach ($data as $key => &$value) {
             if (preg_match('(pass(word)?)', $key)) {
                 $value = '*****';
@@ -60,7 +67,8 @@ class Utils {
         return $data;
     }
 
-    static public function cleanPasswordsInUrlQuery($queryString) {
+    public static function cleanPasswordsInUrlQuery(string $queryString): string
+    {
         return preg_replace('%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im', '$1*****$2', $queryString);
     }
 }

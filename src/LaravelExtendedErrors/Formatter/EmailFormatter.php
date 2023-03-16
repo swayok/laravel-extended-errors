@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelExtendedErrors\Formatter;
 
-class EmailFormatter extends HtmlFormatter {
+class EmailFormatter extends HtmlFormatter
+{
 
-    protected $renderAsPage = true;
-    protected $allowJavaScript = false;
+    protected bool $renderAsPage = true;
 }
