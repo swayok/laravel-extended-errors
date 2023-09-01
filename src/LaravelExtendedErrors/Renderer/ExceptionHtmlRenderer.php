@@ -43,6 +43,11 @@ class ExceptionHtmlRenderer extends LogHtmlRenderer
         static::$userInfoCollector = $closure;
     }
 
+    protected function getMessage(): string
+    {
+        return $this->exception->getMessage();
+    }
+
     protected function getPageTitle(): string
     {
         return 'Error report: ' . $this->exception->getMessage();

@@ -21,7 +21,7 @@ class TelegramHandler extends AbstractProcessingHandler
     public const PARSE_MODE_HTML = 'HTML';
     public const PARSE_MODE_MARKDOWN = 'Markdown';
 
-    static protected bool $ignoreNextException = false;
+    protected static bool $ignoreNextException = false;
 
     public function __construct(
         int|string|Level $level,
@@ -38,7 +38,7 @@ class TelegramHandler extends AbstractProcessingHandler
     }
 
     /**
-     * @param string     $token
+     * @param string $token
      * @param array|null $proxy
      */
     protected function initBotApi(string $token, ?array $proxy = null): void
