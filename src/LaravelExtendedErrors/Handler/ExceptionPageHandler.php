@@ -19,7 +19,8 @@ class ExceptionPageHandler extends PrettyPageHandler
             new \DateTimeImmutable(),
             'Exception',
             Level::Critical,
-            $exception->getMessage()
+            $exception->getMessage(),
+            method_exists($exception, 'context') ? $exception->context() : []
         );
         $renderer = new ExceptionHtmlRenderer($exception, $record);
         echo $renderer->renderPage();
