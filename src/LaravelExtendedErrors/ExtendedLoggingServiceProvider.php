@@ -79,6 +79,7 @@ class ExtendedLoggingServiceProvider extends ServiceProvider
                 $this->level($config),
                 Arr::get($config, 'token'),
                 Arr::get($config, 'chat_id'),
+                Arr::get($config, 'message_prefix'),
                 Arr::get($config, 'bubble', false),
                 Arr::get($config, 'proxy')
             );

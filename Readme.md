@@ -79,18 +79,23 @@ All changes will be applied to `'channels'` array in `config/logging.php`.
             'password' => env('LOG_TELEGRAM_PROXY_PASSWORD'),
         ],
         'level' => 'debug',
+        'message_prefix' => env('LOG_TELEGRAM_MESSAGE_PREFIX', mb_ucfirst(env('APP_ENV', ''))),
         'bubble' => false',
     ]
 
-Rendered logs and exceptions are sent as documents to provided `chat_id`
+Rendered logs and exceptions are sent as documents to provided `chat_id`.
+
+Option `message_prefix` will wrap passed string into `[] ` and add it in front of the message 
+resulting in something like `[Prod] *Error* Something happened.` when `'message_prefix' => "Prod"` 
+and message is `*Error* Something happened.`. 
 
 **Proxy settings:**
-- `proxy.type` can be: `http`, `socks4`, `socks5`, `nginx`
-- `proxy.user` and `proxy.password` can be empty if proxy has no authorisation
-- `proxy.host` for `http`, `socks4` and `socks5` types usually is an IP address like `192.168.1.1`
+- `proxy.type` can be: `http`, `socks4`, `socks5`, `nginx`;
+- `proxy.user` and `proxy.password` can be empty if proxy has no authorisation;
+- `proxy.host` for `http`, `socks4` and `socks5` types usually is an IP address like `192.168.1.1`;
 - `proxy.host` for `nginx` type should be a full url like `http://bot.yourdomain.com`
 ,`https://bot.yourdomain.com` or `http://bot.yourdomain.com:8080`; 
-`proxy.port` is not used for this type;
+- `proxy.port` is not used for this type.
 
 Proxy uses Basic Auth method to send user and password. 
 Other auth methods are not supported right now. 

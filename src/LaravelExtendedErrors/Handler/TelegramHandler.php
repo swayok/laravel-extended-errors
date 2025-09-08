@@ -27,6 +27,7 @@ class TelegramHandler extends AbstractProcessingHandler
         int|string|Level $level,
         ?string $token = null,
         protected int|string|null $chatId = null,
+        protected ?string $messagePrefix = null,
         bool $bubble = false,
         ?array $proxy = null
     ) {
@@ -140,7 +141,6 @@ class TelegramHandler extends AbstractProcessingHandler
                 @unlink($filePath);
             }
             static::$ignoreNextException = true;
-            /** @noinspection PhpStrictTypeCheckingInspection */
             Log::critical($exception);
             static::$ignoreNextException = false;
         }
@@ -167,7 +167,7 @@ class TelegramHandler extends AbstractProcessingHandler
             $this->botApi->call('sendDocument', [
                 'chat_id' => $this->chatId,
                 'document' => $document,
-                'caption' => $caption,
+                'caption' => $this->modifyMessage($caption),
                 'parse_mode' => $parseMode,
                 'disable_notification' => $disableNotification,
             ])
@@ -180,17 +180,25 @@ class TelegramHandler extends AbstractProcessingHandler
      */
     protected function sendMessage(
         string $message,
-        string $parseMode = null,
+        ?string $parseMode = null,
         bool $disableNotification = false
     ): ?Message {
         return $this->botApi?->sendMessage(
             $this->chatId,
-            $message,
+            $this->modifyMessage($message),
             $parseMode,
             false,
             null,
             null,
             $disableNotification
         );
+    }
+
+    protected function modifyMessage(string $text): string
+    {
+        if (empty($this->messagePrefix)) {
+            return $text;
+        }
+        return "[{$this->messagePrefix}] {$text}";
     }
 }
