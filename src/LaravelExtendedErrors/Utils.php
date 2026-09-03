@@ -16,7 +16,7 @@ class Utils
             '$_GET' => static::cleanPasswordsInArray($_GET),
             '$_POST' => static::cleanPasswordsInArray($_POST),
             '$_FILES' => static::cleanPasswordsInArray($_FILES),
-            '$_COOKIE' => static::cleanPasswordsInArray(Cookie::get()),
+            '$_COOKIE' => static::cleanPasswordsInArray(static::getCookies()),
             '$_SERVER' => array_intersect_key(
                 $_SERVER, array_flip([
                     'HTTP_ACCEPT_LANGUAGE',
@@ -70,5 +70,17 @@ class Utils
     public static function cleanPasswordsInUrlQuery(string $queryString): string
     {
         return preg_replace('%(pass(?:word)?[^=]*?=)[^&^"]*(&|$|")%im', '$1*****$2', $queryString);
+    }
+
+    public static function getCookies(): array
+    {
+        try {
+            if (app()->runningInConsole()) {
+                return [];
+            }
+            return app()->resolved('cookie') ? Cookie::get() : $_COOKIE;
+        } catch (\Throwable) {
+            return [];
+        }
     }
 }
