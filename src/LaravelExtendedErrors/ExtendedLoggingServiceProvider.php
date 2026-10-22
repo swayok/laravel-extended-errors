@@ -2,33 +2,20 @@
 
 namespace LaravelExtendedErrors;
 
-use Illuminate\Foundation\Application;
 use Illuminate\Log\ParsesLogConfiguration;
 use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use LaravelExtendedErrors\Formatter\EmailFormatter;
 use LaravelExtendedErrors\Handler\ExceptionPageHandler;
 use LaravelExtendedErrors\Handler\TelegramHandler;
-use LaravelExtendedErrors\MailTransport\ExtendedLogTransport;
 use Monolog\Handler\NativeMailerHandler;
 use Monolog\Logger;
-use Psr\Log\LoggerInterface;
 use Whoops\Handler\HandlerInterface;
 
 class ExtendedLoggingServiceProvider extends ServiceProvider {
 
     use ParsesLogConfiguration;
-    
-    /**
-     * @var int
-     */
-    protected $laravelVersion;
-    
-    public function __construct($app) {
-        parent::__construct($app);
-        $this->laravelVersion = (float)$app->version();
-    }
-    
+
     /**
      * Get fallback log channel name.
      *
@@ -36,10 +23,6 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
      */
     protected function getFallbackChannelName() {
         return 'production';
-    }
-
-    public function boot() {
-        $this->replaceMailLogTransport();
     }
 
     /**
@@ -80,10 +63,8 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             'logging.replace_whoops' => true/false
          */
         $this->replaceWhoopsPrettyPrintHandler();
-    
-        // for Laravel 7+
+
         $this->replaceMailManager();
-        
     }
 
     protected function replaceLogManager(): ExtendedLogManager {
@@ -131,18 +112,6 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
         });
     }
 
-    protected function replaceMailLogTransport() {
-        if ($this->laravelVersion < 7.0) {
-            // Laravel <= 6
-            /** @var \Illuminate\Mail\TransportManager $swiftTransport */
-            $swiftTransport = $this->app->make('swift.transport');
-            $swiftTransport->extend('log', function ($app) {
-                /** @var Application $app */
-                return new ExtendedLogTransport($app->make(LoggerInterface::class));
-            });
-        }
-    }
-
     protected function replaceWhoopsPrettyPrintHandler() {
         if ($this->app['config']['logging.replace_whoops']) {
             $this->app->bind(HandlerInterface::class, function () {
@@ -150,13 +119,11 @@ class ExtendedLoggingServiceProvider extends ServiceProvider {
             });
         }
     }
-    
+
     protected function replaceMailManager() {
-        if ($this->laravelVersion >= 7.0) {
-            $this->app->extend('mail.manager', function ($service, $app) {
-                return new ExtendedMailManager($app);
-            });
-        }
+        $this->app->extend('mail.manager', function ($service, $app) {
+            return new ExtendedMailManager($app);
+        });
     }
 
 }
