@@ -157,7 +157,7 @@ HTML;
             }
             foreach ($data as $key => $value) {
                 if (!is_array($value)) {
-                    $data[$key] = htmlentities($value);
+                    $data[$key] = is_string($value) ? htmlentities($value) : $value;
                 }
             }
             $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
