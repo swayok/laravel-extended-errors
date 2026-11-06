@@ -42,6 +42,10 @@ class ExtendedLoggingServiceProvider extends ServiceProvider
                 'chat_id' => env('LOG_TELEGRAM_CHAT_ID'),
                 'level' => 'debug',
                 'bubble' => false',
+                // false (default, synchronous) | 'async-wait' | 'queue'
+                'async' => env('LOG_TELEGRAM_ASYNC', false),
+                // queue name used when 'async' => 'queue'; null uses the default queue
+                'async_queue' => env('LOG_TELEGRAM_ASYNC_QUEUE'),
             ],
         */
         $this->registerTelegramChannelDriver();
@@ -81,7 +85,9 @@ class ExtendedLoggingServiceProvider extends ServiceProvider
                 Arr::get($config, 'chat_id'),
                 Arr::get($config, 'message_prefix'),
                 Arr::get($config, 'bubble', false),
-                Arr::get($config, 'proxy')
+                Arr::get($config, 'proxy'),
+                Arr::get($config, 'async', false),
+                Arr::get($config, 'async_queue')
             );
             $handler->setFormatter(new EmailFormatter());
             return new Logger($this->parseChannel($config), [$handler]);

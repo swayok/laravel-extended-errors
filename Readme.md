@@ -81,6 +81,8 @@ All changes will be applied to `'channels'` array in `config/logging.php`.
         'level' => 'debug',
         'message_prefix' => env('LOG_TELEGRAM_MESSAGE_PREFIX', mb_ucfirst(env('APP_ENV', ''))),
         'bubble' => false',
+        'async' => env('LOG_TELEGRAM_ASYNC', false),
+        'async_queue' => env('LOG_TELEGRAM_ASYNC_QUEUE'),
     ]
 
 Rendered logs and exceptions are sent as documents to provided `chat_id`.
@@ -88,6 +90,17 @@ Rendered logs and exceptions are sent as documents to provided `chat_id`.
 Option `message_prefix` will wrap passed string into `[] ` and add it in front of the message 
 resulting in something like `[Prod] *Error* Something happened.` when `'message_prefix' => "Prod"` 
 and message is `*Error* Something happened.`. 
+
+**Async settings:**
+
+By default (`'async' => false`), sending a log message to Telegram blocks the current request
+until the HTTP call to the Telegram API completes. `async` accepts two other values:
+- `'async-wait'` — the request is sent asynchronously and the rest of the current request is not
+  blocked, but the script still waits for it to finish (and runs the same fallback logic on
+  failure) right before it terminates. No queue worker required.
+- `'queue'` — the send (and its fallback logic) is dispatched as a queued job instead of running
+  in the current process at all. Requires a queue worker to be running; use `async_queue` to pick
+  which queue it's dispatched to (`null` uses the default queue).
 
 **Proxy settings:**
 - `proxy.type` can be: `http`, `socks4`, `socks5`, `nginx`;
